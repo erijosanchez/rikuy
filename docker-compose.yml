@@ -1,0 +1,78 @@
+name: rikuy
+
+services:
+  # --- Laravel 12 + Inertia/Vue, servido por nginx + php-fpm -----------------
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./app/.env
+    ports:
+      - "8000:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1',80)?0:1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- PostgreSQL (analítica) -----------------------------------------------
+  # Sin `ports`: solo accesible dentro de la red de compose (regla 7 CLAUDE.md).
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rikuy
+      POSTGRES_USER: rikuy
+      POSTGRES_PASSWORD: rikuy
+    expose:
+      - "5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rikuy -d rikuy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- Redis (cache / colas / sesiones) -------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- Microservicio de forecasting (FastAPI stub) --------------------------
+  forecast:
+    build:
+      context: ./forecast-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pg_data:
+  redis_data:
+  app_storage:

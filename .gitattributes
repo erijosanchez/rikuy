@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# Scripts que corren dentro de contenedores Linux: forzar LF siempre
+*.sh text eol=lf
+docker/app/entrypoint.sh text eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

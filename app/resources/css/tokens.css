@@ -1,0 +1,77 @@
+/*
+ * Rikuy — Design Tokens
+ * --------------------------------------------------------------------------
+ * Tema oscuro tipo Grafana. Esta es la ÚNICA fuente de verdad de los tokens
+ * de diseño. No definir colores/espaciados sueltos en componentes: consumir
+ * estas variables. Cambiar la marca = cambiar aquí.
+ * (Regla 4 de CLAUDE.md: el design system no se toca fuera de la Fase 0).
+ */
+
+:root {
+    /* --- Superficies (de más profunda a más elevada) --- */
+    --rk-bg: #0b0f17;          /* fondo base de la app */
+    --rk-surface: #111722;     /* paneles / cards */
+    --rk-surface-2: #161d2b;   /* card elevada / hover */
+    --rk-border: #222b3a;      /* bordes sutiles */
+    --rk-border-strong: #303a4d;
+
+    /* --- Texto --- */
+    --rk-text: #e6edf3;        /* texto principal */
+    --rk-text-muted: #9aa7b8;  /* texto secundario */
+    --rk-text-faint: #61708a;  /* labels, captions */
+
+    /* --- Marca / acentos --- */
+    --rk-primary: #2ec4b6;     /* teal — acción principal */
+    --rk-primary-hover: #25a99d;
+    --rk-primary-contrast: #04221f;
+    --rk-accent: #7c5cff;      /* violeta — datos/secundario */
+
+    /* --- Estados (estilo Grafana) --- */
+    --rk-success: #3fb950;
+    --rk-warning: #d9a441;
+    --rk-danger: #f2545b;
+    --rk-info: #4c8dff;
+
+    /* --- Paleta de series para charts (ECharts en fases siguientes) --- */
+    --rk-series-1: #2ec4b6;
+    --rk-series-2: #7c5cff;
+    --rk-series-3: #4c8dff;
+    --rk-series-4: #d9a441;
+    --rk-series-5: #f2545b;
+    --rk-series-6: #3fb950;
+
+    /* --- Tipografía --- */
+    --rk-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --rk-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+    --rk-text-xs: 0.75rem;
+    --rk-text-sm: 0.875rem;
+    --rk-text-base: 1rem;
+    --rk-text-lg: 1.125rem;
+    --rk-text-xl: 1.5rem;
+    --rk-text-2xl: 2.25rem;
+    --rk-text-3xl: 3.25rem;
+
+    /* --- Espaciado (escala de 4px) --- */
+    --rk-space-1: 0.25rem;
+    --rk-space-2: 0.5rem;
+    --rk-space-3: 0.75rem;
+    --rk-space-4: 1rem;
+    --rk-space-6: 1.5rem;
+    --rk-space-8: 2rem;
+    --rk-space-12: 3rem;
+    --rk-space-16: 4rem;
+
+    /* --- Radios --- */
+    --rk-radius-sm: 6px;
+    --rk-radius: 10px;
+    --rk-radius-lg: 16px;
+    --rk-radius-full: 999px;
+
+    /* --- Sombras y efectos --- */
+    --rk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --rk-glow-primary: 0 0 0 1px rgba(46, 196, 182, 0.25), 0 8px 32px rgba(46, 196, 182, 0.18);
+
+    /* --- Layout --- */
+    --rk-maxw: 1120px;
+}

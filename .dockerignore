@@ -1,0 +1,22 @@
+# VCS / meta
+.git
+.gitignore
+.gitattributes
+README.md
+CLAUDE.md
+BACKLOG.md
+
+# Build context solo necesita app/ y docker/
+forecast-service/
+
+# Dependencias y artefactos de host (se generan dentro de la imagen)
+app/vendor/
+app/node_modules/
+app/public/build/
+app/public/hot
+app/storage/logs/*
+app/storage/framework/cache/data/*
+app/storage/framework/sessions/*
+app/storage/framework/views/*
+app/.env
+app/.phpunit.result.cache
