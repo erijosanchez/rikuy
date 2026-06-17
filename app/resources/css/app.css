@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.vue';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: var(--rk-font-sans);
+    --font-mono: var(--rk-font-mono);
+}
+
+html {
+    color-scheme: dark;
+}
+
+body {
+    margin: 0;
+    background-color: var(--rk-bg);
+    color: var(--rk-text);
+    font-family: var(--rk-font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
