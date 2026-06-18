@@ -1,14 +1,20 @@
 <script setup>
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import TrendChart from '../Components/Charts/TrendChart.vue';
+import TopProductsChart from '../Components/Charts/TopProductsChart.vue';
+import RegionChart from '../Components/Charts/RegionChart.vue';
 
 const props = defineProps({
     organization: { type: Object, required: true },
     datasets: { type: Array, default: () => [] },
     readOnly: { type: Boolean, default: false },
     kpis: { type: Object, default: () => ({}) },
+    trend: { type: Array, default: () => [] },
     topProducts: { type: Array, default: () => [] },
     byRegion: { type: Array, default: () => [] },
+    comparison: { type: Object, default: null },
+    filters: { type: Object, default: () => ({ years: [], selectedYear: null }) },
 });
 
 const page = usePage();
@@ -19,6 +25,36 @@ const numberFmt = new Intl.NumberFormat('es-PE');
 const moneyFmt = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 });
 
 const hasMetrics = computed(() => (props.kpis?.ordenes ?? 0) > 0);
+
+// Filtro de periodo: recarga solo las props de métricas preservando el scroll.
+const selectedYear = computed(() => props.filters?.selectedYear ?? null);
+
+const selectYear = (year) => {
+    if (year === selectedYear.value) return;
+    router.get(
+        window.location.pathname,
+        year ? { year } : {},
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['kpis', 'trend', 'topProducts', 'byRegion', 'comparison', 'filters'],
+        },
+    );
+};
+
+// Variación del comparativo (año vs año anterior) para el KPI de facturación.
+const delta = computed(() => {
+    const c = props.comparison;
+    if (!c || c.variacion_pct === null || !c.tiene_previo) return null;
+    return {
+        pct: c.variacion_pct,
+        up: c.variacion_pct >= 0,
+        previo: c.year_previo,
+    };
+});
+
+const periodLabel = computed(() => (selectedYear.value ? String(selectedYear.value) : 'Todo el historial'));
 
 const statusLabel = {
     mapping: 'Por mapear',
@@ -68,11 +104,41 @@ const logout = () => router.post('/logout');
 
             <div v-if="flash" class="flash">{{ flash }}</div>
 
+            <!-- Filtro de periodo (Fase 4): recorta todas las métricas al año. -->
+            <section v-if="hasMetrics && filters.years.length" class="periodbar">
+                <span class="periodbar__label">Periodo</span>
+                <div class="chips">
+                    <button
+                        class="chip"
+                        :class="{ 'chip--on': selectedYear === null }"
+                        @click="selectYear(null)"
+                    >
+                        Todo
+                    </button>
+                    <button
+                        v-for="y in filters.years"
+                        :key="y"
+                        class="chip"
+                        :class="{ 'chip--on': selectedYear === y }"
+                        @click="selectYear(y)"
+                    >
+                        {{ y }}
+                    </button>
+                </div>
+            </section>
+
             <!-- KPIs (Fase 3): números reales desde el esquema estrella -->
             <section v-if="hasMetrics" class="kpis">
                 <div class="kpi">
                     <span class="kpi__label">Total facturado</span>
                     <span class="kpi__value">{{ moneyFmt.format(kpis.monto) }}</span>
+                    <span
+                        v-if="delta"
+                        class="kpi__delta"
+                        :class="delta.up ? 'kpi__delta--up' : 'kpi__delta--down'"
+                    >
+                        {{ delta.up ? '▲' : '▼' }} {{ Math.abs(delta.pct) }}% vs {{ delta.previo }}
+                    </span>
                 </div>
                 <div class="kpi">
                     <span class="kpi__label">Órdenes</span>
@@ -88,25 +154,25 @@ const logout = () => router.post('/logout');
                 </div>
             </section>
 
-            <section v-if="hasMetrics" class="breakdowns">
-                <div class="panel">
-                    <h2 class="panel__title">Top productos</h2>
-                    <ul class="rank">
-                        <li v-for="p in topProducts" :key="p.producto">
-                            <span class="rank__pos">{{ p.ranking }}</span>
-                            <span class="rank__name">{{ p.producto }}</span>
-                            <span class="rank__val">{{ moneyFmt.format(p.monto) }} · {{ p.participacion_pct }}%</span>
-                        </li>
-                    </ul>
+            <!-- Tendencia mensual (ECharts): barras de monto + línea de acumulado -->
+            <section v-if="hasMetrics && trend.length" class="panel chartpanel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Tendencia mensual</h2>
+                    <span class="panel__meta">{{ periodLabel }}</span>
                 </div>
-                <div class="panel">
+                <TrendChart :trend="trend" />
+            </section>
+
+            <section v-if="hasMetrics" class="breakdowns">
+                <div class="panel chartpanel">
+                    <h2 class="panel__title">Top productos</h2>
+                    <TopProductsChart v-if="topProducts.length" :products="topProducts" />
+                    <p v-else class="panel__empty">Sin productos en este periodo.</p>
+                </div>
+                <div class="panel chartpanel">
                     <h2 class="panel__title">Por región</h2>
-                    <ul class="rank">
-                        <li v-for="r in byRegion.slice(0, 6)" :key="r.region">
-                            <span class="rank__name">{{ r.region }}</span>
-                            <span class="rank__val">{{ moneyFmt.format(r.monto) }} · {{ r.participacion_pct }}%</span>
-                        </li>
-                    </ul>
+                    <RegionChart v-if="byRegion.length" :regions="byRegion" />
+                    <p v-else class="panel__empty">Sin regiones en este periodo.</p>
                 </div>
             </section>
 
@@ -320,6 +386,60 @@ const logout = () => router.post('/logout');
     letter-spacing: -0.02em;
 }
 
+.kpi__delta {
+    font-size: var(--rk-text-xs);
+    font-family: var(--rk-font-mono);
+    font-weight: 600;
+}
+
+.kpi__delta--up { color: var(--rk-success); }
+.kpi__delta--down { color: var(--rk-danger); }
+
+/* --- Filtro de periodo --- */
+.periodbar {
+    display: flex;
+    align-items: center;
+    gap: var(--rk-space-3);
+    margin-bottom: var(--rk-space-4);
+    flex-wrap: wrap;
+}
+
+.periodbar__label {
+    font-size: var(--rk-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--rk-text-faint);
+}
+
+.chips {
+    display: flex;
+    gap: var(--rk-space-2);
+    flex-wrap: wrap;
+}
+
+.chip {
+    font-size: var(--rk-text-sm);
+    font-family: var(--rk-font-mono);
+    color: var(--rk-text-muted);
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-border-strong);
+    border-radius: var(--rk-radius-full);
+    padding: var(--rk-space-1) var(--rk-space-4);
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.chip:hover {
+    color: var(--rk-text);
+    border-color: var(--rk-primary);
+}
+
+.chip--on {
+    color: var(--rk-primary-contrast);
+    background: var(--rk-primary);
+    border-color: var(--rk-primary);
+}
+
 .breakdowns {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -338,6 +458,36 @@ const logout = () => router.post('/logout');
     margin: 0 0 var(--rk-space-4);
     font-size: var(--rk-text-base);
     font-weight: 600;
+}
+
+.chartpanel {
+    margin-bottom: var(--rk-space-4);
+}
+
+.panel__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--rk-space-3);
+    margin-bottom: var(--rk-space-4);
+}
+
+.panel__head .panel__title {
+    margin: 0;
+}
+
+.panel__meta {
+    font-size: var(--rk-text-xs);
+    font-family: var(--rk-font-mono);
+    color: var(--rk-text-faint);
+}
+
+.panel__empty {
+    margin: 0;
+    padding: var(--rk-space-8) 0;
+    text-align: center;
+    color: var(--rk-text-faint);
+    font-size: var(--rk-text-sm);
 }
 
 .rank {

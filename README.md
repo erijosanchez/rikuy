@@ -20,8 +20,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Fase 3 — Modelo analítico + métricas ✅** — esquema estrella en Postgres,
   vista materializada, capa de métricas con window functions y endpoints de KPIs
   validados contra la fuente.
+- **Fase 4 — Dashboard ejecutivo ✅** — KPIs con comparativo interanual,
+  tendencia mensual, top productos y participación por región en **ECharts**
+  (tema oscuro tipo Grafana), con **filtro de periodo** por año.
 
-> Próxima: Fase 4 (Dashboard ejecutivo).
+> Próxima: Fase 5 (Alertas y anomalías).
 
 ---
 
@@ -38,6 +41,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Modelo analítico**: las filas se transforman en un **esquema estrella**
   (hechos/dimensiones) y los KPIs se sirven desde una capa de métricas con
   window functions y una vista materializada.
+- **Dashboard ejecutivo**: KPIs, tendencia mensual, top productos y región en
+  **ECharts** con filtro de periodo por año y comparativo interanual.
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -194,6 +199,42 @@ El build es idempotente y se dispara desde `ProcessDataset` (cola) y desde
 
 ---
 
+## Dashboard ejecutivo (Fase 4)
+
+El dashboard (`/dashboard` y `/demo`) lee las mismas props que `/metrics` y las
+pinta con **ECharts** (cargado con tree-shaking, renderer canvas) sobre el tema
+oscuro:
+
+- **KPIs de cabecera** — total facturado (con **delta interanual** ▲/▼), órdenes,
+  ticket promedio y unidades.
+- **Tendencia mensual** — barras de monto + línea de acumulado (la window
+  function `SUM() OVER`) en eje secundario.
+- **Top productos** — barras horizontales con % de participación.
+- **Por región** — donut de participación (la cola larga se agrupa en *Otras*).
+
+### Filtro de periodo
+
+Una barra de chips (`Todo` + cada año con data) recorta **todas** las medidas al
+año elegido. El front recarga solo las props de métricas con Inertia
+(`only: [...]`, `preserveScroll`) y el back valida el año contra
+`OrderMetrics::availableYears()` (un año inválido cae a *Todo*). La participación
+se recalcula sobre el total del periodo, no sobre el global.
+
+- **Tema de charts**: `app/resources/js/charts/theme.js` lee los design tokens
+  (`--rk-*`) en runtime, así los gráficos respetan el design system (regla 4).
+- **Componentes**: `Components/Charts/BaseChart.vue` (init/resize/dispose) +
+  `TrendChart`, `TopProductsChart`, `RegionChart`.
+
+### DoD de la Fase 4 ✅
+
+- El dashboard del tenant demo se ve y los **filtros de periodo funcionan**
+  (recortan KPIs, tendencia y breakdowns).
+- El comparativo interanual y el filtro están cubiertos en
+  `tests/Feature/AnalyticsMetricsTest.php` (años disponibles, recorte por año,
+  comparativo vs año previo y endpoint `/metrics?year=`).
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -222,7 +263,10 @@ rikuy/
 │   ├── database/seeders/data/    # CSV de muestra de PERÚ COMPRAS
 │   ├── resources/
 │   │   ├── css/tokens.css        # design tokens
-│   │   └── js/Pages/             # Landing, Auth/*, Dashboard, Datasets/Map
+│   │   └── js/
+│   │       ├── charts/theme.js   # tema de ECharts desde los design tokens
+│   │       ├── Components/Charts/ # BaseChart, Trend/TopProducts/Region
+│   │       └── Pages/            # Landing, Auth/*, Dashboard, Datasets/Map
 │   └── tests/Feature/            # AuthTest, TenantIsolationTest, DatasetIngestionTest, AnalyticsMetricsTest
 ├── forecast-service/             # microservicio FastAPI (stub)
 ├── docker/app/                   # Dockerfile, nginx, supervisor, entrypoint
