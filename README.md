@@ -23,8 +23,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Fase 4 — Dashboard ejecutivo ✅** — KPIs con comparativo interanual,
   tendencia mensual, top productos y participación por región en **ECharts**
   (tema oscuro tipo Grafana), con **filtro de periodo** por año.
+- **Fase 5 — Alertas y anomalías ✅** — reglas por tenant ("ventas caen X% vs.
+  mes anterior"), evaluación idempotente sobre la serie mensual, notificación a
+  los usuarios y comando agendado a diario.
 
-> Próxima: Fase 5 (Alertas y anomalías).
+> Próxima: Fase 6 (Forecasting).
 
 ---
 
@@ -43,6 +46,9 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   window functions y una vista materializada.
 - **Dashboard ejecutivo**: KPIs, tendencia mensual, top productos y región en
   **ECharts** con filtro de periodo por año y comparativo interanual.
+- **Alertas**: reglas por tenant que vigilan caídas/subidas de ventas u órdenes
+  mes a mes; al romperse el umbral se registra el disparo y se notifica a los
+  usuarios. Evaluación diaria vía `rikuy:check-alerts` (scheduler).
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -91,7 +97,9 @@ el tenant demo (idempotente).
 | `/login`     | invitado            | Inicia sesión                                 |
 | `/dashboard` | autenticado         | Dashboard del tenant del usuario              |
 | `/metrics`   | autenticado         | KPIs del tenant (JSON)                        |
+| `/alerts`    | autenticado         | Reglas de alerta y disparos del tenant        |
 | `/demo/metrics` | **público**      | KPIs del tenant demo (JSON)                   |
+| `/demo/alerts`  | **público**      | Alertas del tenant demo (solo lectura)        |
 
 ---
 
@@ -235,6 +243,43 @@ se recalcula sobre el total del periodo, no sobre el global.
 
 ---
 
+## Alertas y anomalías (Fase 5)
+
+Reglas simples por tenant que vigilan la variación **intermensual** de una medida:
+
+- **`AlertRule`** (`alert_rules`): medida (`monto` = ventas | `ordenes`),
+  dirección (`drop` = cae | `rise` = sube) y umbral en %. Aislada por tenant.
+- **`AlertEvaluator`** recorre la serie mensual (`OrderMetrics::monthlyTrend`) y,
+  por cada par de meses cuya variación rompe el umbral en la dirección dada,
+  registra un **`AlertEvent`**. El evento es **único por (regla, periodo)**: la
+  evaluación es idempotente y no duplica disparos al reejecutarse.
+- **`AlertTriggered`** (notificación, canal *database*) llega a los usuarios del
+  tenant; los disparos también quedan en el log visible en `/alerts`.
+- **`rikuy:check-alerts`** evalúa todos los tenants (o uno con `--tenant=slug`) y
+  notifica los disparos nuevos. Agendado a diario en `routes/console.php`.
+
+Crear una regla en `/alerts` la evalúa **en el acto** contra el historial: si ya
+hay periodos que la rompen, se disparan y notifican al instante.
+
+> Aislamiento: el route-model binding corre antes de que el middleware fije el
+> tenant, así que `AlertController` verifica la propiedad de la regla
+> explícitamente (404 si es de otro tenant), además del global scope.
+
+### DoD de la Fase 5 ✅
+
+- Una regla configurada **dispara una notificación** (probado en
+  `tests/Feature/AlertsTest.php`: comando + endpoint con `Notification::fake`).
+- Cubre además idempotencia, reglas pausadas, dirección `rise`/`drop`,
+  aislamiento por tenant y la página demo pública de solo lectura.
+
+```bash
+# Evaluar alertas manualmente (todos los tenants o uno):
+php artisan rikuy:check-alerts
+php artisan rikuy:check-alerts --tenant=demo
+```
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -252,13 +297,15 @@ colores sueltos.
 rikuy/
 ├── app/                          # Laravel 12 + Inertia/Vue
 │   ├── app/
+│   │   ├── Alerts/               # AlertEvaluator (reglas vs. serie mensual)
 │   │   ├── Analytics/            # StarSchemaBuilder, OrderMetrics
-│   │   ├── Console/Commands/     # SeedDemo (rikuy:seed-demo)
-│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics
+│   │   ├── Console/Commands/     # SeedDemo, CheckAlerts (rikuy:*)
+│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics, Alert
 │   │   ├── Http/Middleware/      # IdentifyTenant, HandleInertiaRequests
 │   │   ├── Ingesta/              # CanonicalSchema, SpreadsheetReader, DatasetProcessor
 │   │   ├── Jobs/                 # ProcessDataset
-│   │   ├── Models/               # Organization, User, Dataset, DatasetRow, Fact/Dim* (+ Concerns)
+│   │   ├── Models/               # Organization, User, Dataset, DatasetRow, Fact/Dim*, Alert* (+ Concerns)
+│   │   ├── Notifications/        # AlertTriggered
 │   │   └── Tenancy/              # TenantManager
 │   ├── database/seeders/data/    # CSV de muestra de PERÚ COMPRAS
 │   ├── resources/
@@ -266,8 +313,8 @@ rikuy/
 │   │   └── js/
 │   │       ├── charts/theme.js   # tema de ECharts desde los design tokens
 │   │       ├── Components/Charts/ # BaseChart, Trend/TopProducts/Region
-│   │       └── Pages/            # Landing, Auth/*, Dashboard, Datasets/Map
-│   └── tests/Feature/            # AuthTest, TenantIsolationTest, DatasetIngestionTest, AnalyticsMetricsTest
+│   │       └── Pages/            # Landing, Auth/*, Dashboard, Alerts, Datasets/Map
+│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts
 ├── forecast-service/             # microservicio FastAPI (stub)
 ├── docker/app/                   # Dockerfile, nginx, supervisor, entrypoint
 ├── docker-compose.yml

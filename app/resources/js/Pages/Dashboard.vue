@@ -56,6 +56,8 @@ const delta = computed(() => {
 
 const periodLabel = computed(() => (selectedYear.value ? String(selectedYear.value) : 'Todo el historial'));
 
+const alertsHref = computed(() => (props.readOnly ? '/demo/alerts' : '/alerts'));
+
 const statusLabel = {
     mapping: 'Por mapear',
     processing: 'Procesando',
@@ -82,6 +84,11 @@ const logout = () => router.post('/logout');
             <Link href="/" class="brand">
                 <span class="brand__dot"></span> Rikuy
             </Link>
+
+            <nav class="nav">
+                <span class="nav__link nav__link--on">Dashboard</span>
+                <Link :href="alertsHref" class="nav__link">Alertas</Link>
+            </nav>
 
             <div class="topbar__right">
                 <span v-if="user" class="who">{{ user.name }}</span>
@@ -240,10 +247,26 @@ const logout = () => router.post('/logout');
 .topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--rk-space-6);
     padding: var(--rk-space-4) var(--rk-space-6);
     border-bottom: 1px solid var(--rk-border);
     background: var(--rk-surface);
+}
+
+.nav {
+    display: flex;
+    gap: var(--rk-space-4);
+}
+
+.nav__link {
+    font-size: var(--rk-text-sm);
+    color: var(--rk-text-muted);
+    text-decoration: none;
+}
+
+.nav__link--on {
+    color: var(--rk-primary);
+    font-weight: 600;
 }
 
 .brand {
@@ -264,6 +287,7 @@ const logout = () => router.post('/logout');
 }
 
 .topbar__right {
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: var(--rk-space-3);
