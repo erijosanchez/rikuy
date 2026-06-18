@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Alerts\AlertEvaluator;
 use App\Analytics\StarSchemaBuilder;
 use App\Ingesta\DatasetProcessor;
+use App\Models\AlertRule;
 use App\Models\Dataset;
 use App\Models\Organization;
 use Illuminate\Console\Command;
@@ -23,7 +25,7 @@ class SeedDemo extends Command
 
     protected $description = 'Carga el dataset demo de PERÚ COMPRAS al tenant demo (idempotente).';
 
-    public function handle(DatasetProcessor $processor, StarSchemaBuilder $builder): int
+    public function handle(DatasetProcessor $processor, StarSchemaBuilder $builder, AlertEvaluator $evaluator): int
     {
         $demo = Organization::firstOrCreate(
             ['slug' => 'demo'],
@@ -76,6 +78,16 @@ class SeedDemo extends Command
         $builder->build($dataset->refresh());
 
         $this->info("Tenant demo cargado: «{$dataset->name}» con {$dataset->fresh()->rows} filas.");
+
+        // Regla de alerta de muestra + evaluación, para que /demo/alerts tenga
+        // disparos reales sobre la serie del demo (idempotente).
+        $rule = AlertRule::withoutGlobalScope('tenant')->updateOrCreate(
+            ['organization_id' => $demo->id, 'name' => 'Ventas caen ≥ 20%'],
+            ['measure' => 'monto', 'direction' => 'drop', 'threshold_pct' => 20, 'enabled' => true],
+        );
+
+        $events = $evaluator->evaluateOrganization($demo->id);
+        $this->info("Alertas demo: regla «{$rule->name}» — {$events->count()} disparo(s) nuevo(s).");
 
         return self::SUCCESS;
     }

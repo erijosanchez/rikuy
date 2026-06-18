@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
@@ -10,7 +11,7 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Landing', [
-        'phase' => 'Fase 4 — Dashboard ejecutivo',
+        'phase' => 'Fase 5 — Alertas y anomalías',
     ]);
 })->name('landing');
 
@@ -18,6 +19,7 @@ Route::get('/', function () {
 Route::middleware('tenant:demo')->group(function () {
     Route::get('/demo', [DashboardController::class, 'index'])->name('demo');
     Route::get('/demo/metrics', [MetricsController::class, 'index'])->name('demo.metrics');
+    Route::get('/demo/alerts', [AlertController::class, 'index'])->name('demo.alerts');
 });
 
 // Invitados (no autenticados): registro y login.
@@ -33,6 +35,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'tenant:user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');
+
+    // Alertas y anomalías (Fase 5).
+    Route::get('/alerts', [AlertController::class, 'index'])->name('alerts');
+    Route::post('/alerts', [AlertController::class, 'store'])->name('alerts.store');
+    Route::patch('/alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
+    Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
 
     // Ingesta de datasets (subida → mapeo → procesado en cola).
     Route::post('/datasets', [DatasetController::class, 'store'])->name('datasets.store');
