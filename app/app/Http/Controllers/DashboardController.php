@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Analytics\OrderMetrics;
 use App\Models\Dataset;
 use App\Tenancy\TenantManager;
 use Inertia\Inertia;
@@ -15,6 +16,8 @@ class DashboardController extends Controller
 
         // Dataset usa BelongsToTenant: la consulta ya viene aislada al tenant.
         $datasets = Dataset::orderBy('name')->get();
+
+        $metrics = OrderMetrics::for($organization->id);
 
         return Inertia::render('Dashboard', [
             'organization' => [
@@ -30,6 +33,9 @@ class DashboardController extends Controller
                 'error' => $dataset->error,
             ]),
             'readOnly' => $tenants->isDemo(),
+            'kpis' => $metrics->summary(),
+            'topProducts' => $metrics->topProducts(5),
+            'byRegion' => $metrics->byRegion(),
         ]);
     }
 }

@@ -17,8 +17,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   aislamiento de data por tenant y sandbox demo público de solo lectura.
 - **Fase 2 — Ingesta ✅** — subida de CSV/Excel con validación y mapeo de
   columnas, procesamiento en cola con Horizon y comando `rikuy:seed-demo`.
+- **Fase 3 — Modelo analítico + métricas ✅** — esquema estrella en Postgres,
+  vista materializada, capa de métricas con window functions y endpoints de KPIs
+  validados contra la fuente.
 
-> Próxima: Fase 3 (Modelo analítico + métricas).
+> Próxima: Fase 4 (Dashboard ejecutivo).
 
 ---
 
@@ -32,6 +35,9 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   registrarse.
 - **Ingesta**: subes un CSV/Excel, mapeas sus columnas a campos canónicos y un
   job en cola (**Horizon**) lo procesa a filas normalizadas.
+- **Modelo analítico**: las filas se transforman en un **esquema estrella**
+  (hechos/dimensiones) y los KPIs se sirven desde una capa de métricas con
+  window functions y una vista materializada.
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -79,6 +85,8 @@ el tenant demo (idempotente).
 | `/register`  | invitado            | Crea cuenta + workspace propio                |
 | `/login`     | invitado            | Inicia sesión                                 |
 | `/dashboard` | autenticado         | Dashboard del tenant del usuario              |
+| `/metrics`   | autenticado         | KPIs del tenant (JSON)                        |
+| `/demo/metrics` | **público**      | KPIs del tenant demo (JSON)                   |
 
 ---
 
@@ -148,6 +156,44 @@ arrancar el contenedor `app`.
 
 ---
 
+## Modelo analítico (Fase 3)
+
+Tras la ingesta, `App\Analytics\StarSchemaBuilder` transforma las filas
+canónicas (`dataset_rows`) en un **esquema estrella** en Postgres:
+
+```
+                 dim_date (conformada, global)
+                      │
+dim_product ──┐       │       ┌── dim_entity
+dim_supplier ─┼──> fact_orders ┼── dim_region
+              └──────┬─────────┘
+            (monto, cantidad · aislado por tenant · trazable a su dataset)
+```
+
+- **Hechos** (`fact_orders`): grano = una línea de orden, con surrogate keys a
+  cada dimensión y medidas aditivas (`monto`, `cantidad`).
+- **Dimensiones**: `dim_product / dim_supplier / dim_entity / dim_region`
+  (por-tenant) y `dim_date` (conformada, global).
+- **Vista materializada** `mv_orders_monthly`: agregación mensual por tenant
+  (VISTA MATERIALIZADA en Postgres, refrescada tras cada build; vista normal en
+  sqlite para tests).
+- **Capa de métricas** (`App\Analytics\OrderMetrics`): `summary`, `monthlyTrend`
+  (con `SUM() OVER` acumulado y `LAG()` para variación intermensual),
+  `topProducts` y `byRegion`. Servida en `/metrics` y `/demo/metrics`.
+
+El build es idempotente y se dispara desde `ProcessDataset` (cola) y desde
+`rikuy:seed-demo`.
+
+### DoD de la Fase 3 ✅
+
+- Los endpoints de KPIs devuelven números **validados contra la fuente**: la
+  suma de `fact_orders` cuadra exacto con la suma de `dataset_rows`
+  (verificado en vivo: S/ 6 131 123.06 sobre 180 órdenes del demo).
+- Cubierto por `tests/Feature/AnalyticsMetricsTest.php` (cálculo manual de
+  summary, top productos, tendencia mensual e integridad hecho↔fuente).
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -165,18 +211,19 @@ colores sueltos.
 rikuy/
 ├── app/                          # Laravel 12 + Inertia/Vue
 │   ├── app/
+│   │   ├── Analytics/            # StarSchemaBuilder, OrderMetrics
 │   │   ├── Console/Commands/     # SeedDemo (rikuy:seed-demo)
-│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset
+│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics
 │   │   ├── Http/Middleware/      # IdentifyTenant, HandleInertiaRequests
 │   │   ├── Ingesta/              # CanonicalSchema, SpreadsheetReader, DatasetProcessor
 │   │   ├── Jobs/                 # ProcessDataset
-│   │   ├── Models/               # Organization, User, Dataset, DatasetRow (+ Concerns)
+│   │   ├── Models/               # Organization, User, Dataset, DatasetRow, Fact/Dim* (+ Concerns)
 │   │   └── Tenancy/              # TenantManager
 │   ├── database/seeders/data/    # CSV de muestra de PERÚ COMPRAS
 │   ├── resources/
 │   │   ├── css/tokens.css        # design tokens
 │   │   └── js/Pages/             # Landing, Auth/*, Dashboard, Datasets/Map
-│   └── tests/Feature/            # AuthTest, TenantIsolationTest, DatasetIngestionTest
+│   └── tests/Feature/            # AuthTest, TenantIsolationTest, DatasetIngestionTest, AnalyticsMetricsTest
 ├── forecast-service/             # microservicio FastAPI (stub)
 ├── docker/app/                   # Dockerfile, nginx, supervisor, entrypoint
 ├── docker-compose.yml

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Analytics\StarSchemaBuilder;
 use App\Ingesta\DatasetProcessor;
 use App\Models\Dataset;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,11 +21,14 @@ class ProcessDataset implements ShouldQueue
 
     public function __construct(public int $datasetId) {}
 
-    public function handle(DatasetProcessor $processor): void
+    public function handle(DatasetProcessor $processor, StarSchemaBuilder $builder): void
     {
         // Sin scope de tenant en la cola: buscamos el dataset por id directo.
         $dataset = Dataset::query()->findOrFail($this->datasetId);
 
         $processor->process($dataset);
+
+        // Filas crudas → esquema estrella (hechos/dimensiones) + refresh de MV.
+        $builder->build($dataset);
     }
 }

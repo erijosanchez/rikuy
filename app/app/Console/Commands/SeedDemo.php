@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Analytics\StarSchemaBuilder;
 use App\Ingesta\DatasetProcessor;
 use App\Models\Dataset;
 use App\Models\Organization;
@@ -22,7 +23,7 @@ class SeedDemo extends Command
 
     protected $description = 'Carga el dataset demo de PERÚ COMPRAS al tenant demo (idempotente).';
 
-    public function handle(DatasetProcessor $processor): int
+    public function handle(DatasetProcessor $processor, StarSchemaBuilder $builder): int
     {
         $demo = Organization::firstOrCreate(
             ['slug' => 'demo'],
@@ -72,6 +73,7 @@ class SeedDemo extends Command
         );
 
         $processor->process($dataset->refresh());
+        $builder->build($dataset->refresh());
 
         $this->info("Tenant demo cargado: «{$dataset->name}» con {$dataset->fresh()->rows} filas.");
 
