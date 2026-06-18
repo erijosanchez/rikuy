@@ -11,7 +11,8 @@
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.47",
         "laravel/tinker": "^2.10.1",
-        "openspout/openspout": "^4.28"
+        "openspout/openspout": "^4.28",
+        "spatie/browsershot": "^5.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

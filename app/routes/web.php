@@ -7,12 +7,13 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DatasetController;
 use App\Http\Controllers\MetricsController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Landing', [
-        'phase' => 'Fase 7 — Asistente de datos (NL)',
+        'phase' => 'MVP completo · 8 fases',
     ]);
 })->name('landing');
 
@@ -25,6 +26,8 @@ Route::middleware('tenant:demo')->group(function () {
     // Asistente de datos: GET la página, POST la consulta (read-only).
     Route::get('/demo/assistant', [AssistantController::class, 'show'])->name('demo.assistant');
     Route::post('/demo/assistant', [AssistantController::class, 'ask'])->name('demo.assistant.ask');
+
+    Route::get('/demo/report/executive.pdf', [ReportController::class, 'executive'])->name('demo.report.executive');
 });
 
 // Invitados (no autenticados): registro y login.
@@ -50,6 +53,9 @@ Route::middleware(['auth', 'tenant:user'])->group(function () {
     // Asistente de datos (NL).
     Route::get('/assistant', [AssistantController::class, 'show'])->name('assistant');
     Route::post('/assistant', [AssistantController::class, 'ask'])->name('assistant.ask');
+
+    // Reporte ejecutivo en PDF (Fase 8).
+    Route::get('/report/executive.pdf', [ReportController::class, 'executive'])->name('report.executive');
 
     // Ingesta de datasets (subida → mapeo → procesado en cola).
     Route::post('/datasets', [DatasetController::class, 'store'])->name('datasets.store');

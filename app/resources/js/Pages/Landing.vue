@@ -25,8 +25,16 @@ const pillars = [
     {
         tag: 'Producto',
         title: 'Pensado para el usuario',
-        body: 'Sube tu CSV y mira tu negocio de un vistazo: KPIs, tendencias, alertas y un asistente que responde en español.',
+        body: 'Sube tu CSV y mira tu negocio de un vistazo: KPIs, tendencias, alertas, proyecciones, un asistente en español y reporte ejecutivo en PDF.',
     },
+];
+
+const caps = [
+    'Dashboard ejecutivo',
+    'Alertas',
+    'Forecasting',
+    'Asistente NL',
+    'Reporte PDF',
 ];
 </script>
 
@@ -69,6 +77,10 @@ const pillars = [
                 <Link class="btn btn--primary" href="/demo">Ver el demo</Link>
                 <a class="btn btn--ghost" href="#pilares">Cómo funciona</a>
             </div>
+
+            <ul class="caps" aria-label="Capacidades">
+                <li v-for="cap in caps" :key="cap">{{ cap }}</li>
+            </ul>
         </section>
 
         <section id="pilares" class="pillars">
@@ -82,7 +94,7 @@ const pillars = [
         <footer class="footer">
             <span>Rikuy · <span class="mono">rikuy</span> (quechua: ver, observar)</span>
             <span class="footer__status">
-                <span class="status-dot"></span> Cimientos en marcha
+                <span class="status-dot"></span> MVP en vivo
             </span>
         </footer>
     </main>
@@ -251,6 +263,26 @@ const pillars = [
 
 .btn--ghost:hover {
     background: var(--rk-surface-2);
+}
+
+/* --- Tira de capacidades --- */
+.caps {
+    list-style: none;
+    margin: var(--rk-space-8) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--rk-space-2);
+}
+
+.caps li {
+    font-family: var(--rk-font-mono);
+    font-size: var(--rk-text-xs);
+    color: var(--rk-text-muted);
+    border: 1px solid var(--rk-border);
+    border-radius: var(--rk-radius-full);
+    padding: var(--rk-space-1) var(--rk-space-3);
+    background: var(--rk-surface);
 }
 
 /* --- Pilares --- */
