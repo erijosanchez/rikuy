@@ -10,7 +10,7 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Landing', [
-        'phase' => 'Fase 1 — Auth + Tenancy',
+        'phase' => 'Fase 4 — Dashboard ejecutivo',
     ]);
 })->name('landing');
 
