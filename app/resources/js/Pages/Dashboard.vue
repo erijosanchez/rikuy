@@ -2,10 +2,13 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     organization: { type: Object, required: true },
     datasets: { type: Array, default: () => [] },
     readOnly: { type: Boolean, default: false },
+    kpis: { type: Object, default: () => ({}) },
+    topProducts: { type: Array, default: () => [] },
+    byRegion: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -13,6 +16,9 @@ const user = computed(() => page.props.auth?.user ?? null);
 const flash = computed(() => page.props.flash?.status ?? null);
 
 const numberFmt = new Intl.NumberFormat('es-PE');
+const moneyFmt = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 });
+
+const hasMetrics = computed(() => (props.kpis?.ordenes ?? 0) > 0);
 
 const statusLabel = {
     mapping: 'Por mapear',
@@ -61,6 +67,48 @@ const logout = () => router.post('/logout');
             </div>
 
             <div v-if="flash" class="flash">{{ flash }}</div>
+
+            <!-- KPIs (Fase 3): números reales desde el esquema estrella -->
+            <section v-if="hasMetrics" class="kpis">
+                <div class="kpi">
+                    <span class="kpi__label">Total facturado</span>
+                    <span class="kpi__value">{{ moneyFmt.format(kpis.monto) }}</span>
+                </div>
+                <div class="kpi">
+                    <span class="kpi__label">Órdenes</span>
+                    <span class="kpi__value">{{ numberFmt.format(kpis.ordenes) }}</span>
+                </div>
+                <div class="kpi">
+                    <span class="kpi__label">Ticket promedio</span>
+                    <span class="kpi__value">{{ moneyFmt.format(kpis.ticket_promedio) }}</span>
+                </div>
+                <div class="kpi">
+                    <span class="kpi__label">Unidades</span>
+                    <span class="kpi__value">{{ numberFmt.format(kpis.unidades) }}</span>
+                </div>
+            </section>
+
+            <section v-if="hasMetrics" class="breakdowns">
+                <div class="panel">
+                    <h2 class="panel__title">Top productos</h2>
+                    <ul class="rank">
+                        <li v-for="p in topProducts" :key="p.producto">
+                            <span class="rank__pos">{{ p.ranking }}</span>
+                            <span class="rank__name">{{ p.producto }}</span>
+                            <span class="rank__val">{{ moneyFmt.format(p.monto) }} · {{ p.participacion_pct }}%</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="panel">
+                    <h2 class="panel__title">Por región</h2>
+                    <ul class="rank">
+                        <li v-for="r in byRegion.slice(0, 6)" :key="r.region">
+                            <span class="rank__name">{{ r.region }}</span>
+                            <span class="rank__val">{{ moneyFmt.format(r.monto) }} · {{ r.participacion_pct }}%</span>
+                        </li>
+                    </ul>
+                </div>
+            </section>
 
             <!-- Subida de datasets (oculta en el sandbox demo) -->
             <section v-if="!readOnly" class="uploader">
@@ -237,6 +285,103 @@ const logout = () => router.post('/logout');
     border: 1px solid var(--rk-primary);
     color: var(--rk-text);
     font-size: var(--rk-text-sm);
+}
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--rk-space-4);
+    margin-bottom: var(--rk-space-4);
+}
+
+.kpi {
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-border);
+    border-radius: var(--rk-radius-lg);
+    padding: var(--rk-space-6);
+    box-shadow: var(--rk-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: var(--rk-space-2);
+}
+
+.kpi__label {
+    font-size: var(--rk-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rk-text-faint);
+}
+
+.kpi__value {
+    font-size: var(--rk-text-2xl);
+    font-weight: 700;
+    font-family: var(--rk-font-mono);
+    color: var(--rk-primary);
+    letter-spacing: -0.02em;
+}
+
+.breakdowns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--rk-space-4);
+    margin-bottom: var(--rk-space-6);
+}
+
+.panel {
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-border);
+    border-radius: var(--rk-radius-lg);
+    padding: var(--rk-space-6);
+}
+
+.panel__title {
+    margin: 0 0 var(--rk-space-4);
+    font-size: var(--rk-text-base);
+    font-weight: 600;
+}
+
+.rank {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--rk-space-3);
+}
+
+.rank li {
+    display: flex;
+    align-items: center;
+    gap: var(--rk-space-3);
+    font-size: var(--rk-text-sm);
+}
+
+.rank__pos {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--rk-radius-full);
+    background: var(--rk-surface-2);
+    color: var(--rk-text-muted);
+    font-size: var(--rk-text-xs);
+    font-family: var(--rk-font-mono);
+}
+
+.rank__name {
+    flex: 1;
+    color: var(--rk-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rank__val {
+    flex-shrink: 0;
+    color: var(--rk-text-muted);
+    font-family: var(--rk-font-mono);
+    font-size: var(--rk-text-xs);
 }
 
 .uploader {
