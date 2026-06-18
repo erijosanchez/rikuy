@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DatasetController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,6 +30,11 @@ Route::middleware('guest')->group(function () {
 // Área autenticada: tenant resuelto desde el usuario.
 Route::middleware(['auth', 'tenant:user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Ingesta de datasets (subida → mapeo → procesado en cola).
+    Route::post('/datasets', [DatasetController::class, 'store'])->name('datasets.store');
+    Route::get('/datasets/{dataset}/map', [DatasetController::class, 'map'])->name('datasets.map');
+    Route::post('/datasets/{dataset}/map', [DatasetController::class, 'process'])->name('datasets.process');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])

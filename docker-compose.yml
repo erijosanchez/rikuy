@@ -24,6 +24,33 @@ services:
       timeout: 5s
       retries: 10
 
+  # --- Worker de colas (Horizon) --------------------------------------------
+  # Misma imagen que app, pero corre Horizon. APP_ROLE=worker evita que migre.
+  horizon:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    restart: unless-stopped
+    command: ["php", "artisan", "horizon"]
+    env_file:
+      - ./app/.env
+    environment:
+      APP_ROLE: worker
+    depends_on:
+      app:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   # --- PostgreSQL (analítica) -----------------------------------------------
   # Sin `ports`: solo accesible dentro de la red de compose (regla 7 CLAUDE.md).
   postgres:

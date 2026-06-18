@@ -27,6 +27,7 @@ class DashboardController extends Controller
                 'name' => $dataset->name,
                 'status' => $dataset->status,
                 'rows' => $dataset->rows,
+                'error' => $dataset->error,
             ]),
             'readOnly' => $tenants->isDemo(),
         ]);
