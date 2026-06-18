@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 defineProps({
@@ -10,8 +10,24 @@ defineProps({
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
+const flash = computed(() => page.props.flash?.status ?? null);
 
 const numberFmt = new Intl.NumberFormat('es-PE');
+
+const statusLabel = {
+    mapping: 'Por mapear',
+    processing: 'Procesando',
+    ready: 'Listo',
+    failed: 'Falló',
+};
+
+const upload = useForm({ file: null, name: '' });
+
+const submitUpload = () => {
+    upload.post('/datasets', {
+        onSuccess: () => upload.reset(),
+    });
+};
 
 const logout = () => router.post('/logout');
 </script>
@@ -44,19 +60,57 @@ const logout = () => router.post('/logout');
                 <span v-if="readOnly" class="ro-badge">Sandbox · solo lectura</span>
             </div>
 
+            <div v-if="flash" class="flash">{{ flash }}</div>
+
+            <!-- Subida de datasets (oculta en el sandbox demo) -->
+            <section v-if="!readOnly" class="uploader">
+                <div>
+                    <h2 class="uploader__title">Subir dataset</h2>
+                    <p class="uploader__hint">CSV o Excel (.xlsx), hasta 10 MB. Luego mapeas las columnas.</p>
+                </div>
+                <form class="uploader__form" @submit.prevent="submitUpload">
+                    <input
+                        type="file"
+                        accept=".csv,.txt,.xlsx"
+                        class="file"
+                        @input="upload.file = $event.target.files[0]"
+                    />
+                    <input v-model="upload.name" type="text" class="text-input" placeholder="Nombre (opcional)" />
+                    <button type="submit" class="btn-primary" :disabled="upload.processing || !upload.file">
+                        {{ upload.processing ? 'Subiendo…' : 'Subir' }}
+                    </button>
+                </form>
+            </section>
+            <p v-if="upload.errors.file" class="error">{{ upload.errors.file }}</p>
+
             <section v-if="datasets.length" class="grid">
                 <article v-for="ds in datasets" :key="ds.id" class="ds">
                     <div class="ds__top">
                         <h2 class="ds__name">{{ ds.name }}</h2>
-                        <span class="ds__status">{{ ds.status }}</span>
+                        <span class="ds__status" :class="`ds__status--${ds.status}`">
+                            {{ statusLabel[ds.status] ?? ds.status }}
+                        </span>
                     </div>
-                    <p class="ds__rows">{{ numberFmt.format(ds.rows) }} <span>filas</span></p>
+
+                    <p v-if="ds.status === 'ready'" class="ds__rows">
+                        {{ numberFmt.format(ds.rows) }} <span>filas</span>
+                    </p>
+                    <p v-else-if="ds.status === 'failed'" class="ds__error">{{ ds.error }}</p>
+                    <Link
+                        v-else-if="ds.status === 'mapping' && !readOnly"
+                        :href="`/datasets/${ds.id}/map`"
+                        class="ds__action"
+                    >
+                        Mapear columnas →
+                    </Link>
+                    <p v-else class="ds__muted">En cola…</p>
                 </article>
             </section>
 
             <section v-else class="empty">
                 <h2>Aún no hay datasets</h2>
-                <p>Tu workspace está vacío. En la Fase 2 podrás subir tu CSV y procesarlo.</p>
+                <p v-if="!readOnly">Sube tu primer CSV arriba para procesarlo.</p>
+                <p v-else>Este sandbox aún no tiene datos cargados.</p>
             </section>
         </main>
     </div>
@@ -114,6 +168,7 @@ const logout = () => router.post('/logout');
     padding: var(--rk-space-2) var(--rk-space-4);
     border-radius: var(--rk-radius);
     cursor: pointer;
+    border: none;
 }
 
 .btn-ghost {
@@ -124,8 +179,12 @@ const logout = () => router.post('/logout');
 
 .btn-primary {
     background: var(--rk-primary);
-    border: none;
     color: var(--rk-primary-contrast);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .content {
@@ -141,7 +200,7 @@ const logout = () => router.post('/logout');
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--rk-space-4);
-    margin-bottom: var(--rk-space-8);
+    margin-bottom: var(--rk-space-6);
 }
 
 .eyebrow {
@@ -168,6 +227,68 @@ const logout = () => router.post('/logout');
     border: 1px solid var(--rk-warning);
     border-radius: var(--rk-radius-full);
     padding: var(--rk-space-1) var(--rk-space-3);
+}
+
+.flash {
+    margin-bottom: var(--rk-space-6);
+    padding: var(--rk-space-3) var(--rk-space-4);
+    border-radius: var(--rk-radius);
+    background: rgba(46, 196, 182, 0.12);
+    border: 1px solid var(--rk-primary);
+    color: var(--rk-text);
+    font-size: var(--rk-text-sm);
+}
+
+.uploader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--rk-space-4);
+    flex-wrap: wrap;
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-border);
+    border-radius: var(--rk-radius-lg);
+    padding: var(--rk-space-6);
+    margin-bottom: var(--rk-space-4);
+}
+
+.uploader__title {
+    margin: 0 0 var(--rk-space-1);
+    font-size: var(--rk-text-base);
+    font-weight: 600;
+}
+
+.uploader__hint {
+    margin: 0;
+    font-size: var(--rk-text-sm);
+    color: var(--rk-text-muted);
+}
+
+.uploader__form {
+    display: flex;
+    align-items: center;
+    gap: var(--rk-space-2);
+    flex-wrap: wrap;
+}
+
+.file {
+    font-size: var(--rk-text-sm);
+    color: var(--rk-text-muted);
+}
+
+.text-input {
+    background: var(--rk-bg);
+    border: 1px solid var(--rk-border-strong);
+    border-radius: var(--rk-radius);
+    padding: var(--rk-space-2) var(--rk-space-3);
+    color: var(--rk-text);
+    font-size: var(--rk-text-sm);
+}
+
+.error {
+    color: var(--rk-danger);
+    font-size: var(--rk-text-sm);
+    margin: 0 0 var(--rk-space-4);
 }
 
 .grid {
@@ -201,11 +322,16 @@ const logout = () => router.post('/logout');
 .ds__status {
     flex-shrink: 0;
     font-size: var(--rk-text-xs);
-    color: var(--rk-success);
     border: 1px solid var(--rk-border-strong);
     border-radius: var(--rk-radius-full);
     padding: 2px var(--rk-space-2);
+    color: var(--rk-text-muted);
 }
+
+.ds__status--ready { color: var(--rk-success); border-color: var(--rk-success); }
+.ds__status--processing { color: var(--rk-info); border-color: var(--rk-info); }
+.ds__status--mapping { color: var(--rk-warning); border-color: var(--rk-warning); }
+.ds__status--failed { color: var(--rk-danger); border-color: var(--rk-danger); }
 
 .ds__rows {
     margin: 0;
@@ -218,6 +344,25 @@ const logout = () => router.post('/logout');
 .ds__rows span {
     font-size: var(--rk-text-sm);
     font-weight: 400;
+    color: var(--rk-text-faint);
+}
+
+.ds__action {
+    color: var(--rk-primary);
+    text-decoration: none;
+    font-size: var(--rk-text-sm);
+    font-weight: 600;
+}
+
+.ds__error {
+    margin: 0;
+    font-size: var(--rk-text-sm);
+    color: var(--rk-danger);
+}
+
+.ds__muted {
+    margin: 0;
+    font-size: var(--rk-text-sm);
     color: var(--rk-text-faint);
 }
 

@@ -15,8 +15,10 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   Redis, FastAPI stub), design tokens del tema oscuro y landing.
 - **Fase 1 — Auth + Tenancy ✅** — registro/login, organizaciones (workspaces),
   aislamiento de data por tenant y sandbox demo público de solo lectura.
+- **Fase 2 — Ingesta ✅** — subida de CSV/Excel con validación y mapeo de
+  columnas, procesamiento en cola con Horizon y comando `rikuy:seed-demo`.
 
-> Próxima: Fase 2 (Ingesta de CSV/Excel).
+> Próxima: Fase 3 (Modelo analítico + métricas).
 
 ---
 
@@ -28,6 +30,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Auth + multi-tenant**: cada cuenta tiene su propia organización (tenant) y
   solo ve su data. El tenant **demo** es un sandbox de solo lectura visible sin
   registrarse.
+- **Ingesta**: subes un CSV/Excel, mapeas sus columnas a campos canónicos y un
+  job en cola (**Horizon**) lo procesa a filas normalizadas.
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -55,6 +59,7 @@ Servicios y puertos:
 | Servicio   | URL local                    | Descripción                                |
 |------------|------------------------------|--------------------------------------------|
 | `app`      | http://localhost:8000        | Laravel + Inertia/Vue                      |
+| `horizon`  | *(interno)*                  | Worker de colas (procesa la ingesta)       |
 | `forecast` | http://localhost:8001/health | Microservicio FastAPI (`{"status":"ok"}`)  |
 | `postgres` | *(interno)*                  | Base de datos analítica                    |
 | `redis`    | *(interno)*                  | Cache / colas / sesiones                   |
@@ -104,6 +109,45 @@ cd app && php artisan test
 
 ---
 
+## Ingesta (Fase 2)
+
+Flujo de subida en tres pasos:
+
+1. **Subir** (`POST /datasets`) — valida el archivo (CSV/TXT/XLSX, ≤10 MB), lo
+   guarda y crea el `Dataset` en estado `mapping`.
+2. **Mapear** (`/datasets/{id}/map`) — el usuario asocia las columnas detectadas
+   a los campos canónicos BI (`fecha`, `producto`, `monto`, `cantidad`,
+   `proveedor`, `entidad`, `region`); ver `App\Ingesta\CanonicalSchema`.
+3. **Procesar** — se despacha `App\Jobs\ProcessDataset` a la cola (Redis +
+   Horizon). El job lee el archivo por streaming (openspout), normaliza cada fila
+   y la aterriza en `dataset_rows` (JSON, aislado por tenant). El dataset pasa a
+   `ready` con su conteo de filas (o `failed` con el error).
+
+Estados del dataset: `mapping → processing → ready | failed`.
+
+### Cargar el tenant demo
+
+```bash
+# Usa el CSV de muestra bundleado (offline / CI):
+php artisan rikuy:seed-demo
+
+# O descarga el dataset real de PERÚ COMPRAS:
+php artisan rikuy:seed-demo --url="https://www.datosabiertos.gob.pe/.../ordenes.csv"
+```
+
+Es idempotente y deja el tenant demo con el hecho transaccional de PERÚ COMPRAS
+(órdenes de compra de Catálogos Electrónicos). En Docker se ejecuta solo al
+arrancar el contenedor `app`.
+
+### DoD de la Fase 2 ✅
+
+- Subir un CSV lo deja como dataset **procesado** (filas normalizadas).
+- El seeder llena el tenant demo.
+- Verificado: `tests/Feature/DatasetIngestionTest.php` (16 tests en total) y el
+  job procesado en vivo por Horizon vía Redis.
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -121,14 +165,18 @@ colores sueltos.
 rikuy/
 ├── app/                          # Laravel 12 + Inertia/Vue
 │   ├── app/
-│   │   ├── Http/Controllers/     # Auth, Dashboard
+│   │   ├── Console/Commands/     # SeedDemo (rikuy:seed-demo)
+│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset
 │   │   ├── Http/Middleware/      # IdentifyTenant, HandleInertiaRequests
-│   │   ├── Models/               # Organization, User, Dataset (+ Concerns)
+│   │   ├── Ingesta/              # CanonicalSchema, SpreadsheetReader, DatasetProcessor
+│   │   ├── Jobs/                 # ProcessDataset
+│   │   ├── Models/               # Organization, User, Dataset, DatasetRow (+ Concerns)
 │   │   └── Tenancy/              # TenantManager
+│   ├── database/seeders/data/    # CSV de muestra de PERÚ COMPRAS
 │   ├── resources/
 │   │   ├── css/tokens.css        # design tokens
-│   │   └── js/Pages/             # Landing, Auth/*, Dashboard
-│   └── tests/Feature/            # AuthTest, TenantIsolationTest
+│   │   └── js/Pages/             # Landing, Auth/*, Dashboard, Datasets/Map
+│   └── tests/Feature/            # AuthTest, TenantIsolationTest, DatasetIngestionTest
 ├── forecast-service/             # microservicio FastAPI (stub)
 ├── docker/app/                   # Dockerfile, nginx, supervisor, entrypoint
 ├── docker-compose.yml

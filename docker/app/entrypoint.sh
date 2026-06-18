@@ -25,8 +25,12 @@ until php -r "exit(@fsockopen(getenv('DB_HOST')?:'postgres',(int)(getenv('DB_POR
 done
 echo "Postgres listo."
 
-php artisan migrate --force || true
-php artisan db:seed --force || true
-php artisan storage:link || true
+# El worker (Horizon) no migra ni seedea: de eso se encarga el contenedor app.
+if [ "$APP_ROLE" != "worker" ]; then
+    php artisan migrate --force || true
+    php artisan db:seed --force || true
+    php artisan storage:link || true
+    php artisan horizon:publish || true
+fi
 
 exec "$@"
