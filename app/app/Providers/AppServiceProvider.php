@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // La app corre detrás de un port-mapping/proxy (Docker, VPS) que no
+        // siempre preserva el puerto del Host. Hacemos a la app autoritativa
+        // sobre su URL base usando APP_URL, así asset()/route() generan URLs
+        // correctas independientemente del Host entrante.
+        if ($appUrl = config('app.url')) {
+            URL::forceRootUrl($appUrl);
+
+            if (Str::startsWith($appUrl, 'https://')) {
+                URL::forceScheme('https');
+            }
+        }
     }
 }
