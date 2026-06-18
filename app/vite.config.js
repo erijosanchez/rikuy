@@ -20,7 +20,14 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
-        host: '0.0.0.0',
+        // Vite corre en el HOST; el navegador (también en el host) lo alcanza en
+        // localhost:5173. cors:true permite que la página servida por el contenedor
+        // (localhost:8000) cargue los assets del dev server (otro origen).
+        host: 'localhost',
+        port: 5173,
+        strictPort: true,
+        cors: true,
+        hmr: { host: 'localhost' },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

@@ -1,2 +1,6 @@
 CLAUDE.md
 BACKLOG.md
+
+# Override de Docker Compose: local y solo-dev. No versionar — compose lo
+# auto-carga y en el VPS rompería producción (monta un public sin build).
+docker-compose.override.yml
