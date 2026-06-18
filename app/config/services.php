@@ -41,4 +41,12 @@ return [
         'timeout' => (int) env('FORECAST_SERVICE_TIMEOUT', 8),
     ],
 
+    // Asistente de datos NL vía Groq (function calling) — Fase 7.
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+        'url' => env('GROQ_API_URL', 'https://api.groq.com/openai/v1'),
+        'model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        'timeout' => (int) env('GROQ_TIMEOUT', 20),
+    ],
+
 ];

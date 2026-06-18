@@ -29,8 +29,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Fase 6 — Forecasting ✅** — microservicio **FastAPI + statsmodels (ETS)** que
   proyecta el KPI principal; Laravel lo consume (resiliente) y grafica la
   **banda de confianza** sobre la tendencia mensual.
+- **Fase 7 — Asistente de datos (NL) ✅** — pregunta en español; responde con
+  números reales vía **function calling (Groq)** sobre la capa de métricas. No
+  inventa cifras: cada respuesta se apoya en herramientas deterministas.
 
-> Próxima: Fase 7 (Asistente de datos NL).
+> Próxima: Fase 8 (Reportes PDF + pulido + deploy).
 
 ---
 
@@ -55,6 +58,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   usuarios. Evaluación diaria vía `rikuy:check-alerts` (scheduler).
 - **Forecasting**: el microservicio Python proyecta la serie mensual y el
   dashboard pinta la banda de confianza sobre la tendencia.
+- **Asistente NL**: chat en español que responde con números reales de la data
+  vía function calling (Groq) sobre la capa de métricas.
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -104,8 +109,10 @@ el tenant demo (idempotente).
 | `/dashboard` | autenticado         | Dashboard del tenant del usuario              |
 | `/metrics`   | autenticado         | KPIs del tenant (JSON)                        |
 | `/alerts`    | autenticado         | Reglas de alerta y disparos del tenant        |
+| `/assistant` | autenticado         | Asistente de datos NL (chat + `POST` consulta)|
 | `/demo/metrics` | **público**      | KPIs del tenant demo (JSON)                   |
 | `/demo/alerts`  | **público**      | Alertas del tenant demo (solo lectura)        |
+| `/demo/assistant` | **público**    | Asistente del demo (chat + `POST` consulta)   |
 
 ---
 
@@ -327,6 +334,45 @@ curl -s localhost:8001/forecast -H 'Content-Type: application/json' \
 
 ---
 
+## Asistente de datos NL (Fase 7)
+
+Un chat en español que responde preguntas sobre la data del tenant con **números
+reales**, usando el patrón RAG con **function calling** (Groq, API compatible con
+OpenAI). El modelo solo orquesta y redacta; las cifras salen siempre de la capa
+de métricas, así que **no fabrica respuestas**.
+
+- **`MetricTools`** expone las herramientas que el modelo puede invocar
+  (`periodo_reciente`, `resumen_ventas`, `top_productos`, `ventas_por_region`,
+  `tendencia_mensual`, `comparar_anios`), cada una resuelta contra `OrderMetrics`
+  y aislada por tenant.
+- **`GroqClient`** habla con el Chat Completions de Groq; **`DataAssistant`**
+  corre el loop de tool-calling (máx. 5 rondas): el modelo pide herramientas, las
+  ejecutamos con data real y le devolvemos el resultado para que redacte.
+- El prompt de sistema prohíbe inventar cifras y, para "último mes", obliga a
+  pasar primero por `periodo_reciente`.
+- **Resiliente**: sin `GROQ_API_KEY` el asistente se deshabilita con un aviso;
+  si la API falla, responde con un mensaje claro en vez de romper.
+- El endpoint es `POST` (consulta, no escribe). En el sandbox demo se permite
+  como **única excepción** al guard de solo-lectura (`IdentifyTenant`), porque
+  solo consulta la capa de métricas.
+
+### DoD de la Fase 7 ✅
+
+- *"¿cuál fue el top 5 de productos del último mes?"* responde con **data real**:
+  el asistente encadena `periodo_reciente` → `top_productos(year, month)` y la
+  respuesta se apoya en esas cifras (probado en `tests/Feature/AssistantTest.php`
+  con `Http::fake` simulando el function calling de Groq).
+- Cubre además: herramientas sobre data real, asistente deshabilitado sin clave,
+  resiliencia ante caída de la API, validación y el demo público vía `POST`.
+
+```env
+# Habilitar el asistente (Fase 7):
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -346,9 +392,10 @@ rikuy/
 │   ├── app/
 │   │   ├── Alerts/               # AlertEvaluator (reglas vs. serie mensual)
 │   │   ├── Analytics/            # StarSchemaBuilder, OrderMetrics
+│   │   ├── Assistant/            # MetricTools, GroqClient, DataAssistant (NL)
 │   │   ├── Console/Commands/     # SeedDemo, CheckAlerts (rikuy:*)
 │   │   ├── Forecasting/          # ForecastClient (consume el microservicio Python)
-│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics, Alert
+│   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics, Alert, Assistant
 │   │   ├── Http/Middleware/      # IdentifyTenant, HandleInertiaRequests
 │   │   ├── Ingesta/              # CanonicalSchema, SpreadsheetReader, DatasetProcessor
 │   │   ├── Jobs/                 # ProcessDataset
@@ -361,8 +408,8 @@ rikuy/
 │   │   └── js/
 │   │       ├── charts/theme.js   # tema de ECharts desde los design tokens
 │   │       ├── Components/Charts/ # BaseChart, Trend/TopProducts/Region
-│   │       └── Pages/            # Landing, Auth/*, Dashboard, Alerts, Datasets/Map
-│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts, Forecast
+│   │       └── Pages/            # Landing, Auth/*, Dashboard, Alerts, Assistant, Datasets/Map
+│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts, Forecast, Assistant
 ├── forecast-service/             # microservicio FastAPI + statsmodels
 │   ├── main.py                   # endpoints (/health, /forecast)
 │   ├── forecaster.py             # núcleo ETS/naive con banda de confianza
