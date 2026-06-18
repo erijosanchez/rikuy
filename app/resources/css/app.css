@@ -14,19 +14,81 @@
 
 html {
     color-scheme: dark;
+    scroll-behavior: smooth;
 }
 
 body {
     margin: 0;
-    background-color: var(--rk-bg);
+    min-height: 100vh;
     color: var(--rk-text);
     font-family: var(--rk-font-sans);
+    font-size: var(--rk-text-base);
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+
+    /* Fondo con profundidad: dos halos suaves sobre el color base. */
+    background-color: var(--rk-bg);
+    background-image:
+        radial-gradient(900px 520px at 12% -8%, rgba(46, 196, 182, 0.08), transparent 60%),
+        radial-gradient(820px 520px at 100% 0%, rgba(139, 108, 255, 0.07), transparent 55%);
+    background-attachment: fixed;
 }
 
 *,
 *::before,
 *::after {
     box-sizing: border-box;
+}
+
+/* Foco accesible y consistente en toda la app. */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--rk-ring);
+    border-radius: var(--rk-radius-sm);
+}
+
+::selection {
+    background: rgba(46, 196, 182, 0.28);
+    color: var(--rk-text);
+}
+
+::placeholder {
+    color: var(--rk-text-faint);
+}
+
+/* Scrollbars discretas, en tono con el tema. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--rk-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--rk-border-strong);
+    border-radius: var(--rk-radius-full);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--rk-text-faint);
+    background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+    }
 }

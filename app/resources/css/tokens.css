@@ -1,77 +1,112 @@
 /*
  * Rikuy — Design Tokens
  * --------------------------------------------------------------------------
- * Tema oscuro tipo Grafana. Esta es la ÚNICA fuente de verdad de los tokens
- * de diseño. No definir colores/espaciados sueltos en componentes: consumir
- * estas variables. Cambiar la marca = cambiar aquí.
- * (Regla 4 de CLAUDE.md: el design system no se toca fuera de la Fase 0).
+ * Tema oscuro tipo consola de analítica (Grafana / Linear / Vercel). Esta es la
+ * ÚNICA fuente de verdad de los tokens. Los componentes consumen estas
+ * variables; no se definen colores/espaciados sueltos. Cambiar la marca = aquí.
+ * (Regla 4 de CLAUDE.md: documentar al tocar el design system.)
  */
 
 :root {
     /* --- Superficies (de más profunda a más elevada) --- */
-    --rk-bg: #0b0f17;          /* fondo base de la app */
-    --rk-surface: #111722;     /* paneles / cards */
-    --rk-surface-2: #161d2b;   /* card elevada / hover */
-    --rk-border: #222b3a;      /* bordes sutiles */
-    --rk-border-strong: #303a4d;
+    --rk-bg: #090d14;          /* fondo base de la app */
+    --rk-bg-soft: #0c111a;     /* fondo alterno / secciones */
+    --rk-surface: #10151f;     /* paneles / cards */
+    --rk-surface-2: #161d2a;   /* card elevada / hover */
+    --rk-surface-3: #1d2636;   /* control activo / popovers */
+
+    /* Bordes translúcidos: se asientan sobre cualquier superficie con sutileza. */
+    --rk-border: rgba(255, 255, 255, 0.07);
+    --rk-border-strong: rgba(255, 255, 255, 0.13);
+    --rk-border-solid: #212b3b; /* cuando se necesita un borde opaco */
 
     /* --- Texto --- */
-    --rk-text: #e6edf3;        /* texto principal */
-    --rk-text-muted: #9aa7b8;  /* texto secundario */
-    --rk-text-faint: #61708a;  /* labels, captions */
+    --rk-text: #e9eef6;        /* texto principal */
+    --rk-text-muted: #99a6b9;  /* texto secundario */
+    --rk-text-faint: #5f6e85;  /* labels, captions */
 
     /* --- Marca / acentos --- */
     --rk-primary: #2ec4b6;     /* teal — acción principal */
-    --rk-primary-hover: #25a99d;
-    --rk-primary-contrast: #04221f;
-    --rk-accent: #7c5cff;      /* violeta — datos/secundario */
+    --rk-primary-hover: #38d4c5;
+    --rk-primary-press: #23a99d;
+    --rk-primary-contrast: #042521;
+    --rk-primary-soft: rgba(46, 196, 182, 0.12);
+    --rk-accent: #8b6cff;      /* violeta — datos/secundario */
+    --rk-accent-soft: rgba(139, 108, 255, 0.14);
 
-    /* --- Estados (estilo Grafana) --- */
-    --rk-success: #3fb950;
-    --rk-warning: #d9a441;
-    --rk-danger: #f2545b;
+    /* --- Estados --- */
+    --rk-success: #41c265;
+    --rk-success-soft: rgba(65, 194, 101, 0.13);
+    --rk-warning: #e0a93f;
+    --rk-warning-soft: rgba(224, 169, 63, 0.13);
+    --rk-danger: #f2555f;
+    --rk-danger-soft: rgba(242, 85, 95, 0.13);
     --rk-info: #4c8dff;
+    --rk-info-soft: rgba(76, 141, 255, 0.13);
 
-    /* --- Paleta de series para charts (ECharts en fases siguientes) --- */
+    /* --- Gradientes --- */
+    --rk-gradient-primary: linear-gradient(135deg, #2ec4b6 0%, #2aa9c8 100%);
+    --rk-gradient-brand: linear-gradient(120deg, #2ec4b6 0%, #6a8bff 55%, #8b6cff 100%);
+    --rk-gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+
+    /* --- Paleta de series para charts (ECharts) --- */
     --rk-series-1: #2ec4b6;
-    --rk-series-2: #7c5cff;
+    --rk-series-2: #8b6cff;
     --rk-series-3: #4c8dff;
-    --rk-series-4: #d9a441;
-    --rk-series-5: #f2545b;
-    --rk-series-6: #3fb950;
+    --rk-series-4: #e0a93f;
+    --rk-series-5: #f2555f;
+    --rk-series-6: #41c265;
 
     /* --- Tipografía --- */
     --rk-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
     --rk-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
+    --rk-text-2xs: 0.6875rem;  /* 11px — micro labels */
     --rk-text-xs: 0.75rem;
     --rk-text-sm: 0.875rem;
     --rk-text-base: 1rem;
     --rk-text-lg: 1.125rem;
-    --rk-text-xl: 1.5rem;
-    --rk-text-2xl: 2.25rem;
-    --rk-text-3xl: 3.25rem;
+    --rk-text-xl: 1.375rem;
+    --rk-text-2xl: 1.75rem;
+    --rk-text-3xl: 2.5rem;
+    --rk-text-4xl: 3.25rem;
+
+    --rk-tracking-tight: -0.02em;
+    --rk-tracking-wide: 0.08em;
+    --rk-tracking-eyebrow: 0.18em;
 
     /* --- Espaciado (escala de 4px) --- */
     --rk-space-1: 0.25rem;
     --rk-space-2: 0.5rem;
     --rk-space-3: 0.75rem;
     --rk-space-4: 1rem;
+    --rk-space-5: 1.25rem;
     --rk-space-6: 1.5rem;
     --rk-space-8: 2rem;
+    --rk-space-10: 2.5rem;
     --rk-space-12: 3rem;
     --rk-space-16: 4rem;
+    --rk-space-20: 5rem;
 
     /* --- Radios --- */
-    --rk-radius-sm: 6px;
-    --rk-radius: 10px;
+    --rk-radius-sm: 7px;
+    --rk-radius: 11px;
     --rk-radius-lg: 16px;
+    --rk-radius-xl: 22px;
     --rk-radius-full: 999px;
 
-    /* --- Sombras y efectos --- */
-    --rk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --rk-glow-primary: 0 0 0 1px rgba(46, 196, 182, 0.25), 0 8px 32px rgba(46, 196, 182, 0.18);
+    /* --- Sombras y efectos (suaves y en capas) --- */
+    --rk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --rk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+    --rk-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.45), 0 24px 60px rgba(0, 0, 0, 0.5);
+    --rk-glow-primary: 0 0 0 1px rgba(46, 196, 182, 0.25), 0 10px 34px rgba(46, 196, 182, 0.16);
+    --rk-ring: 0 0 0 3px rgba(46, 196, 182, 0.32);
+
+    /* --- Transiciones --- */
+    --rk-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --rk-transition: 0.16s var(--rk-ease);
 
     /* --- Layout --- */
-    --rk-maxw: 1120px;
+    --rk-maxw: 1200px;
+    --rk-topbar-h: 60px;
 }
