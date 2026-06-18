@@ -412,7 +412,14 @@ GROQ_MODEL=llama-3.3-70b-versatile
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
 prefijo `--rk-`. Los componentes **consumen** estas variables; no se definen
-colores sueltos.
+colores sueltos. El **refresh v2** (post-MVP) elevó la paleta (superficies en
+capas, bordes translúcidos, sombras suaves, foco accesible y gradientes de marca)
+y unificó el chrome en componentes compartidos:
+
+- `Components/AppShell.vue` — topbar sticky con navegación, identidad y cabecera
+  de página; lo usan Dashboard, Alertas y Asistente (un solo marco consistente).
+- `Components/AuthCard.vue` — layout de login/registro con panel de marca.
+- `Components/BrandMark.vue` — el logo/wordmark con gradiente.
 
 > Regla 4 de `CLAUDE.md`: el design system no se toca fuera de la Fase 0 sin
 > actualizar la documentación.

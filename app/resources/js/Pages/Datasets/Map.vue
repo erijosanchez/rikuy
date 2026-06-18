@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import BrandMark from '../../Components/BrandMark.vue';
 
 const props = defineProps({
     dataset: { type: Object, required: true },
@@ -27,9 +28,7 @@ const submit = () => {
 
     <div class="shell">
         <header class="topbar">
-            <Link href="/dashboard" class="brand">
-                <span class="brand__dot"></span> Rikuy
-            </Link>
+            <BrandMark href="/dashboard" />
             <Link href="/dashboard" class="back">← Volver al dashboard</Link>
         </header>
 
@@ -66,9 +65,7 @@ const submit = () => {
                 <div class="preview__scroll">
                     <table class="tbl">
                         <thead>
-                            <tr>
-                                <th v-for="h in headers" :key="h">{{ h }}</th>
-                            </tr>
+                            <tr><th v-for="h in headers" :key="h">{{ h }}</th></tr>
                         </thead>
                         <tbody>
                             <tr v-for="(r, i) in sample" :key="i">
@@ -86,169 +83,62 @@ const submit = () => {
 .shell { min-height: 100vh; }
 
 .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--rk-space-4) var(--rk-space-6);
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    height: var(--rk-topbar-h); padding: 0 var(--rk-space-6);
     border-bottom: 1px solid var(--rk-border);
-    background: var(--rk-surface);
+    background: color-mix(in srgb, var(--rk-bg) 78%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
 }
+.back { font-size: var(--rk-text-sm); color: var(--rk-text-muted); text-decoration: none; transition: color var(--rk-transition); }
+.back:hover { color: var(--rk-text); }
 
-.brand {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--rk-space-2);
-    font-weight: 700;
-    color: var(--rk-text);
-    text-decoration: none;
-}
+.content { width: 100%; max-width: 780px; margin: 0 auto; padding: var(--rk-space-8) var(--rk-space-6) var(--rk-space-12); }
 
-.brand__dot {
-    width: 10px;
-    height: 10px;
-    border-radius: var(--rk-radius-full);
-    background: var(--rk-primary);
-    box-shadow: var(--rk-glow-primary);
-}
+.eyebrow { margin: 0 0 var(--rk-space-2); font-family: var(--rk-font-mono); font-size: var(--rk-text-xs); text-transform: uppercase; letter-spacing: var(--rk-tracking-eyebrow); color: var(--rk-text-faint); }
+.title { margin: 0; font-size: var(--rk-text-2xl); font-weight: 700; letter-spacing: var(--rk-tracking-tight); }
+.subtitle { margin: var(--rk-space-2) 0 var(--rk-space-6); color: var(--rk-text-muted); font-size: var(--rk-text-sm); }
 
-.back {
-    font-size: var(--rk-text-sm);
-    color: var(--rk-text-muted);
-    text-decoration: none;
-}
-
-.content {
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: var(--rk-space-8) var(--rk-space-6);
-}
-
-.eyebrow {
-    margin: 0 0 var(--rk-space-2);
-    font-family: var(--rk-font-mono);
-    font-size: var(--rk-text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--rk-text-faint);
-}
-
-.title {
-    margin: 0;
-    font-size: var(--rk-text-2xl);
-    font-weight: 700;
-}
-
-.subtitle {
-    margin: var(--rk-space-2) 0 var(--rk-space-6);
-    color: var(--rk-text-muted);
-    font-size: var(--rk-text-sm);
-}
-
-.error {
-    color: var(--rk-danger);
-    font-size: var(--rk-text-sm);
-    margin-bottom: var(--rk-space-4);
-}
+.error { color: var(--rk-danger); font-size: var(--rk-text-sm); margin-bottom: var(--rk-space-4); }
 
 .mapper {
-    display: flex;
-    flex-direction: column;
-    gap: var(--rk-space-3);
-    background: var(--rk-surface);
-    border: 1px solid var(--rk-border);
-    border-radius: var(--rk-radius-lg);
-    padding: var(--rk-space-6);
+    display: flex; flex-direction: column; gap: var(--rk-space-2);
+    background: var(--rk-surface); border: 1px solid var(--rk-border); border-radius: var(--rk-radius-lg);
+    padding: var(--rk-space-4) var(--rk-space-6); box-shadow: var(--rk-shadow);
 }
-
 .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--rk-space-4);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--rk-space-4);
+    padding: var(--rk-space-3) 0; border-bottom: 1px solid var(--rk-border);
 }
-
-.row__label {
-    display: flex;
-    align-items: center;
-    gap: var(--rk-space-2);
-}
-
-.row__name {
-    font-weight: 600;
-    font-size: var(--rk-text-sm);
-}
-
-.req {
-    font-size: var(--rk-text-xs);
-    color: var(--rk-warning);
-}
-
-.type {
-    font-size: var(--rk-text-xs);
-    font-family: var(--rk-font-mono);
-    color: var(--rk-text-faint);
-}
+.row:last-of-type { border-bottom: none; }
+.row__label { display: flex; align-items: center; gap: var(--rk-space-2); }
+.row__name { font-weight: 600; font-size: var(--rk-text-sm); }
+.req { font-size: var(--rk-text-2xs); color: var(--rk-warning); border: 1px solid color-mix(in srgb, var(--rk-warning) 45%, transparent); background: var(--rk-warning-soft); border-radius: var(--rk-radius-full); padding: 0 var(--rk-space-2); }
+.type { font-size: var(--rk-text-xs); font-family: var(--rk-font-mono); color: var(--rk-text-faint); }
 
 .select {
-    min-width: 240px;
-    background: var(--rk-bg);
-    border: 1px solid var(--rk-border-strong);
-    border-radius: var(--rk-radius);
-    padding: var(--rk-space-2) var(--rk-space-3);
-    color: var(--rk-text);
-    font-size: var(--rk-text-sm);
+    min-width: 240px; background: var(--rk-bg-soft); border: 1px solid var(--rk-border-strong);
+    border-radius: var(--rk-radius); padding: var(--rk-space-2) var(--rk-space-3); color: var(--rk-text);
+    font-size: var(--rk-text-sm); font-family: inherit; transition: border-color var(--rk-transition), box-shadow var(--rk-transition);
 }
+.select:focus { outline: none; border-color: var(--rk-primary); box-shadow: var(--rk-ring); }
 
 .btn-primary {
-    align-self: flex-start;
-    margin-top: var(--rk-space-2);
-    background: var(--rk-primary);
-    color: var(--rk-primary-contrast);
-    border: none;
-    border-radius: var(--rk-radius);
-    padding: var(--rk-space-3) var(--rk-space-6);
-    font-weight: 600;
-    font-size: var(--rk-text-sm);
-    cursor: pointer;
+    align-self: flex-start; margin-top: var(--rk-space-4);
+    background: var(--rk-gradient-primary); color: var(--rk-primary-contrast); border: none;
+    border-radius: var(--rk-radius); padding: var(--rk-space-3) var(--rk-space-6); font-weight: 700;
+    font-size: var(--rk-text-sm); cursor: pointer; box-shadow: var(--rk-glow-primary);
+    transition: transform var(--rk-transition), filter var(--rk-transition);
 }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.preview {
-    margin-top: var(--rk-space-8);
-}
-
-.preview__title {
-    margin: 0 0 var(--rk-space-3);
-    font-size: var(--rk-text-base);
-    font-weight: 600;
-}
-
-.preview__scroll {
-    overflow-x: auto;
-    border: 1px solid var(--rk-border);
-    border-radius: var(--rk-radius);
-}
-
-.tbl {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: var(--rk-text-xs);
-}
-
-.tbl th,
-.tbl td {
-    text-align: left;
-    padding: var(--rk-space-2) var(--rk-space-3);
-    border-bottom: 1px solid var(--rk-border);
-    white-space: nowrap;
-}
-
-.tbl th {
-    background: var(--rk-surface-2);
-    color: var(--rk-text-muted);
-    font-family: var(--rk-font-mono);
-    font-weight: 500;
-}
+.preview { margin-top: var(--rk-space-8); }
+.preview__title { margin: 0 0 var(--rk-space-3); font-size: var(--rk-text-base); font-weight: 600; }
+.preview__scroll { overflow-x: auto; border: 1px solid var(--rk-border); border-radius: var(--rk-radius); }
+.tbl { border-collapse: collapse; width: 100%; font-size: var(--rk-text-xs); }
+.tbl th, .tbl td { text-align: left; padding: var(--rk-space-2) var(--rk-space-3); border-bottom: 1px solid var(--rk-border); white-space: nowrap; }
+.tbl th { background: var(--rk-surface-2); color: var(--rk-text-muted); font-family: var(--rk-font-mono); font-weight: 500; }
+.tbl tbody tr:last-child td { border-bottom: none; }
 </style>
