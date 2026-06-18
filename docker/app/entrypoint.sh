@@ -26,6 +26,7 @@ done
 echo "Postgres listo."
 
 php artisan migrate --force || true
+php artisan db:seed --force || true
 php artisan storage:link || true
 
 exec "$@"

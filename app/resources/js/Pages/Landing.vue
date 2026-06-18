@@ -1,5 +1,6 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps({
     phase: {
@@ -7,6 +8,8 @@ defineProps({
         default: '',
     },
 });
+
+const user = computed(() => usePage().props.auth?.user ?? null);
 
 const pillars = [
     {
@@ -38,7 +41,16 @@ const pillars = [
                 <span class="brand__dot"></span>
                 Rikuy
             </span>
-            <span v-if="phase" class="phase-chip">{{ phase }}</span>
+            <nav class="nav__links">
+                <span v-if="phase" class="phase-chip">{{ phase }}</span>
+                <template v-if="user">
+                    <Link href="/dashboard" class="nav-link">{{ user.name }} · Dashboard</Link>
+                </template>
+                <template v-else>
+                    <Link href="/login" class="nav-link">Entrar</Link>
+                    <Link href="/register" class="nav-link nav-link--cta">Crear workspace</Link>
+                </template>
+            </nav>
         </header>
 
         <section class="hero">
@@ -54,7 +66,7 @@ const pillars = [
             </p>
 
             <div class="actions">
-                <a class="btn btn--primary" href="#">Ver el demo</a>
+                <Link class="btn btn--primary" href="/demo">Ver el demo</Link>
                 <a class="btn btn--ghost" href="#pilares">Cómo funciona</a>
             </div>
         </section>
@@ -126,6 +138,12 @@ const pillars = [
     box-shadow: var(--rk-glow-primary);
 }
 
+.nav__links {
+    display: flex;
+    align-items: center;
+    gap: var(--rk-space-3);
+}
+
 .phase-chip {
     font-size: var(--rk-text-xs);
     font-family: var(--rk-font-mono);
@@ -134,6 +152,29 @@ const pillars = [
     border: 1px solid var(--rk-border);
     padding: var(--rk-space-1) var(--rk-space-3);
     border-radius: var(--rk-radius-full);
+}
+
+.nav-link {
+    font-size: var(--rk-text-sm);
+    font-weight: 600;
+    color: var(--rk-text-muted);
+    text-decoration: none;
+    padding: var(--rk-space-2) var(--rk-space-3);
+    border-radius: var(--rk-radius);
+}
+
+.nav-link:hover {
+    color: var(--rk-text);
+}
+
+.nav-link--cta {
+    color: var(--rk-primary-contrast);
+    background: var(--rk-primary);
+}
+
+.nav-link--cta:hover {
+    color: var(--rk-primary-contrast);
+    background: var(--rk-primary-hover);
 }
 
 /* --- Hero --- */
