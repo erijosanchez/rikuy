@@ -11,7 +11,7 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Landing', [
-        'phase' => 'Fase 5 — Alertas y anomalías',
+        'phase' => 'Fase 6 — Forecasting',
     ]);
 })->name('landing');
 

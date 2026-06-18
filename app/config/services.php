@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Microservicio Python de forecasting (Fase 6).
+    'forecast' => [
+        'url' => env('FORECAST_SERVICE_URL', 'http://forecast:8000'),
+        'timeout' => (int) env('FORECAST_SERVICE_TIMEOUT', 8),
+    ],
+
 ];

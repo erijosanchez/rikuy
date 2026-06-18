@@ -26,8 +26,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Fase 5 — Alertas y anomalías ✅** — reglas por tenant ("ventas caen X% vs.
   mes anterior"), evaluación idempotente sobre la serie mensual, notificación a
   los usuarios y comando agendado a diario.
+- **Fase 6 — Forecasting ✅** — microservicio **FastAPI + statsmodels (ETS)** que
+  proyecta el KPI principal; Laravel lo consume (resiliente) y grafica la
+  **banda de confianza** sobre la tendencia mensual.
 
-> Próxima: Fase 6 (Forecasting).
+> Próxima: Fase 7 (Asistente de datos NL).
 
 ---
 
@@ -35,7 +38,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 
 - **Laravel 12 + Inertia.js + Vue 3** servido por nginx + php-fpm.
 - **PostgreSQL 16** y **Redis 7** (cache / colas / sesiones).
-- **forecast-service**: microservicio **FastAPI** (stub) con `/health`.
+- **forecast-service**: microservicio **FastAPI + statsmodels** que proyecta
+  series mensuales (`POST /forecast`) con intervalo de confianza.
 - **Auth + multi-tenant**: cada cuenta tiene su propia organización (tenant) y
   solo ve su data. El tenant **demo** es un sandbox de solo lectura visible sin
   registrarse.
@@ -49,6 +53,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Alertas**: reglas por tenant que vigilan caídas/subidas de ventas u órdenes
   mes a mes; al romperse el umbral se registra el disparo y se notifica a los
   usuarios. Evaluación diaria vía `rikuy:check-alerts` (scheduler).
+- **Forecasting**: el microservicio Python proyecta la serie mensual y el
+  dashboard pinta la banda de confianza sobre la tendencia.
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -280,6 +286,47 @@ php artisan rikuy:check-alerts --tenant=demo
 
 ---
 
+## Forecasting (Fase 6)
+
+El **microservicio Python** (`forecast-service/`) aloja el modelado de series de
+tiempo, separado de Laravel:
+
+- **`POST /forecast`** recibe `{series: [{ds, y}], periods, confidence}` y
+  devuelve, por cada periodo proyectado, `yhat` con su banda
+  (`yhat_lower`/`yhat_upper`). Estrategia adaptativa (`forecaster.py`):
+  - **≥ 24 meses** → ETS con tendencia + estacionalidad anual (statsmodels).
+  - **3–23 meses** → ETS con tendencia amortiguada (sin estacionalidad).
+  - **< 3 meses** → fallback naive (deriva + banda por desviación).
+  - La banda inferior se recorta a 0 (las ventas no son negativas) y si el ajuste
+    estadístico falla, cae al fallback en vez de romper.
+- **Laravel** lo consume con `App\Forecasting\ForecastClient` (URL en
+  `services.forecast.url`). Es **resiliente**: si el servicio no responde, el
+  `DashboardController` pasa `forecast = null` y el dashboard sigue funcionando.
+  La proyección se calcula sobre la serie completa y solo se muestra en la vista
+  **"Todo"** (con un año fijado la tendencia va recortada).
+- **ECharts** (`TrendChart.vue`) dibuja la línea punteada de proyección,
+  enganchada al último mes real, y la banda de confianza con la técnica de áreas
+  apiladas (base transparente + banda translúcida).
+
+### DoD de la Fase 6 ✅
+
+- El KPI principal **muestra su proyección con intervalo de confianza** sobre la
+  tendencia mensual.
+- Cubierto por:
+  - `forecast-service/test_forecaster.py` (modelo naive/ETS, banda no negativa,
+    estacionalidad) — `pip install pytest && pytest`.
+  - `tests/Feature/ForecastTest.php` (cliente con `Http::fake`: contrato,
+    resiliencia ante caída/500, prop en el dashboard, desactivado con filtro de
+    año).
+
+```bash
+# Pedir una proyección directo al microservicio:
+curl -s localhost:8001/forecast -H 'Content-Type: application/json' \
+  -d '{"series":[{"ds":"2024-01","y":1000},{"ds":"2024-02","y":1200}, ...],"periods":3}'
+```
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -300,6 +347,7 @@ rikuy/
 │   │   ├── Alerts/               # AlertEvaluator (reglas vs. serie mensual)
 │   │   ├── Analytics/            # StarSchemaBuilder, OrderMetrics
 │   │   ├── Console/Commands/     # SeedDemo, CheckAlerts (rikuy:*)
+│   │   ├── Forecasting/          # ForecastClient (consume el microservicio Python)
 │   │   ├── Http/Controllers/     # Auth, Dashboard, Dataset, Metrics, Alert
 │   │   ├── Http/Middleware/      # IdentifyTenant, HandleInertiaRequests
 │   │   ├── Ingesta/              # CanonicalSchema, SpreadsheetReader, DatasetProcessor
@@ -314,8 +362,11 @@ rikuy/
 │   │       ├── charts/theme.js   # tema de ECharts desde los design tokens
 │   │       ├── Components/Charts/ # BaseChart, Trend/TopProducts/Region
 │   │       └── Pages/            # Landing, Auth/*, Dashboard, Alerts, Datasets/Map
-│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts
-├── forecast-service/             # microservicio FastAPI (stub)
+│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts, Forecast
+├── forecast-service/             # microservicio FastAPI + statsmodels
+│   ├── main.py                   # endpoints (/health, /forecast)
+│   ├── forecaster.py             # núcleo ETS/naive con banda de confianza
+│   └── test_forecaster.py        # tests (pytest)
 ├── docker/app/                   # Dockerfile, nginx, supervisor, entrypoint
 ├── docker-compose.yml
 └── CLAUDE.md

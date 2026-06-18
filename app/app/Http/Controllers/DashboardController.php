@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Analytics\OrderMetrics;
+use App\Forecasting\ForecastClient;
 use App\Models\Dataset;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, TenantManager $tenants): Response
+    public function index(Request $request, TenantManager $tenants, ForecastClient $forecaster): Response
     {
         $organization = $tenants->current();
 
@@ -24,6 +25,7 @@ class DashboardController extends Controller
         $selectedYear = $this->resolveYear($request, $years);
 
         $metrics = $base->forYear($selectedYear);
+        $trend = $metrics->monthlyTrend();
 
         return Inertia::render('Dashboard', [
             'organization' => [
@@ -40,15 +42,48 @@ class DashboardController extends Controller
             ]),
             'readOnly' => $tenants->isDemo(),
             'kpis' => $metrics->summary(),
-            'trend' => $metrics->monthlyTrend(),
+            'trend' => $trend,
             'topProducts' => $metrics->topProducts(8),
             'byRegion' => $metrics->byRegion(),
             'comparison' => $metrics->comparison(),
+            'forecast' => $this->forecast($forecaster, $selectedYear, $trend),
             'filters' => [
                 'years' => $years,
                 'selectedYear' => $selectedYear,
             ],
         ]);
+    }
+
+    /**
+     * Proyección del KPI principal (monto) sobre la serie completa. Solo en la
+     * vista "Todo": con un año fijado la tendencia va recortada y proyectar más
+     * allá de ese año no tendría sentido. Resiliente: null si el servicio falla.
+     *
+     * @param  array<int, array<string, mixed>>  $trend
+     * @return array{model: string, confidence: float, points: array<int, mixed>}|null
+     */
+    protected function forecast(ForecastClient $forecaster, ?int $selectedYear, array $trend): ?array
+    {
+        if ($selectedYear !== null) {
+            return null;
+        }
+
+        $series = array_map(
+            fn (array $row) => ['ds' => $row['period'], 'y' => $row['monto']],
+            $trend,
+        );
+
+        $result = $forecaster->monthly($series, periods: 3, confidence: 0.80);
+
+        if ($result === null) {
+            return null;
+        }
+
+        return [
+            'model' => $result['model'] ?? 'unknown',
+            'confidence' => $result['confidence'] ?? 0.80,
+            'points' => $result['forecast'],
+        ];
     }
 
     /**

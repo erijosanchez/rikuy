@@ -14,6 +14,7 @@ const props = defineProps({
     topProducts: { type: Array, default: () => [] },
     byRegion: { type: Array, default: () => [] },
     comparison: { type: Object, default: null },
+    forecast: { type: Object, default: null },
     filters: { type: Object, default: () => ({ years: [], selectedYear: null }) },
 });
 
@@ -38,7 +39,7 @@ const selectYear = (year) => {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['kpis', 'trend', 'topProducts', 'byRegion', 'comparison', 'filters'],
+            only: ['kpis', 'trend', 'topProducts', 'byRegion', 'comparison', 'forecast', 'filters'],
         },
     );
 };
@@ -57,6 +58,18 @@ const delta = computed(() => {
 const periodLabel = computed(() => (selectedYear.value ? String(selectedYear.value) : 'Todo el historial'));
 
 const alertsHref = computed(() => (props.readOnly ? '/demo/alerts' : '/alerts'));
+
+const forecastMeta = computed(() => {
+    const f = props.forecast;
+    if (!f || !f.points?.length) return null;
+    const conf = Math.round((f.confidence ?? 0.8) * 100);
+    const label = f.model?.startsWith('ets-seasonal')
+        ? 'ETS estacional'
+        : f.model?.startsWith('ets')
+            ? 'ETS tendencia'
+            : 'Proyección base';
+    return `Proyección ${f.points.length} meses · ${label} · banda ${conf}%`;
+});
 
 const statusLabel = {
     mapping: 'Por mapear',
@@ -161,13 +174,17 @@ const logout = () => router.post('/logout');
                 </div>
             </section>
 
-            <!-- Tendencia mensual (ECharts): barras de monto + línea de acumulado -->
+            <!-- Tendencia mensual (ECharts): barras de monto + línea de acumulado
+                 y, en la vista "Todo", la banda de proyección (Fase 6). -->
             <section v-if="hasMetrics && trend.length" class="panel chartpanel">
                 <div class="panel__head">
                     <h2 class="panel__title">Tendencia mensual</h2>
-                    <span class="panel__meta">{{ periodLabel }}</span>
+                    <span class="panel__meta">
+                        <template v-if="forecastMeta">{{ forecastMeta }}</template>
+                        <template v-else>{{ periodLabel }}</template>
+                    </span>
                 </div>
-                <TrendChart :trend="trend" />
+                <TrendChart :trend="trend" :forecast="forecast" />
             </section>
 
             <section v-if="hasMetrics" class="breakdowns">
