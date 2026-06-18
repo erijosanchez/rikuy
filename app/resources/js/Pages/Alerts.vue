@@ -14,6 +14,7 @@ const user = computed(() => page.props.auth?.user ?? null);
 const flash = computed(() => page.props.flash?.status ?? null);
 
 const dashboardHref = computed(() => (props.readOnly ? '/demo' : '/dashboard'));
+const assistantHref = computed(() => (props.readOnly ? '/demo/assistant' : '/assistant'));
 
 const moneyFmt = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 });
 const numberFmt = new Intl.NumberFormat('es-PE');
@@ -65,6 +66,7 @@ const logout = () => router.post('/logout');
             <nav class="nav">
                 <Link :href="dashboardHref" class="nav__link">Dashboard</Link>
                 <span class="nav__link nav__link--on">Alertas</span>
+                <Link :href="assistantHref" class="nav__link">Asistente</Link>
             </nav>
             <div class="topbar__right">
                 <span v-if="user" class="who">{{ user.name }}</span>

@@ -58,6 +58,7 @@ const delta = computed(() => {
 const periodLabel = computed(() => (selectedYear.value ? String(selectedYear.value) : 'Todo el historial'));
 
 const alertsHref = computed(() => (props.readOnly ? '/demo/alerts' : '/alerts'));
+const assistantHref = computed(() => (props.readOnly ? '/demo/assistant' : '/assistant'));
 
 const forecastMeta = computed(() => {
     const f = props.forecast;
@@ -101,6 +102,7 @@ const logout = () => router.post('/logout');
             <nav class="nav">
                 <span class="nav__link nav__link--on">Dashboard</span>
                 <Link :href="alertsHref" class="nav__link">Alertas</Link>
+                <Link :href="assistantHref" class="nav__link">Asistente</Link>
             </nav>
 
             <div class="topbar__right">

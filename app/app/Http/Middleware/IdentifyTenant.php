@@ -22,8 +22,12 @@ class IdentifyTenant
     public function handle(Request $request, Closure $next, string $source = 'user'): Response
     {
         if ($source === 'demo') {
+            // El sandbox es de solo lectura. Única excepción: el asistente de
+            // datos, que es POST pero solo CONSULTA la capa de métricas (no escribe).
+            $isAssistant = $request->routeIs('demo.assistant.ask');
+
             abort_unless(
-                $request->isMethodSafe(),
+                $request->isMethodSafe() || $isAssistant,
                 403,
                 'El sandbox demo es de solo lectura.'
             );

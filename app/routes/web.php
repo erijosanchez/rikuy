@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
@@ -11,7 +12,7 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Landing', [
-        'phase' => 'Fase 6 — Forecasting',
+        'phase' => 'Fase 7 — Asistente de datos (NL)',
     ]);
 })->name('landing');
 
@@ -20,6 +21,10 @@ Route::middleware('tenant:demo')->group(function () {
     Route::get('/demo', [DashboardController::class, 'index'])->name('demo');
     Route::get('/demo/metrics', [MetricsController::class, 'index'])->name('demo.metrics');
     Route::get('/demo/alerts', [AlertController::class, 'index'])->name('demo.alerts');
+
+    // Asistente de datos: GET la página, POST la consulta (read-only).
+    Route::get('/demo/assistant', [AssistantController::class, 'show'])->name('demo.assistant');
+    Route::post('/demo/assistant', [AssistantController::class, 'ask'])->name('demo.assistant.ask');
 });
 
 // Invitados (no autenticados): registro y login.
@@ -41,6 +46,10 @@ Route::middleware(['auth', 'tenant:user'])->group(function () {
     Route::post('/alerts', [AlertController::class, 'store'])->name('alerts.store');
     Route::patch('/alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
+
+    // Asistente de datos (NL).
+    Route::get('/assistant', [AssistantController::class, 'show'])->name('assistant');
+    Route::post('/assistant', [AssistantController::class, 'ask'])->name('assistant.ask');
 
     // Ingesta de datasets (subida → mapeo → procesado en cola).
     Route::post('/datasets', [DatasetController::class, 'store'])->name('datasets.store');

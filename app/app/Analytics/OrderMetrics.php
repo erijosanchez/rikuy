@@ -19,6 +19,7 @@ class OrderMetrics
     public function __construct(
         protected int $organizationId,
         protected ?int $year = null,
+        protected ?int $month = null,
     ) {}
 
     public static function for(int $organizationId, ?int $year = null): self
@@ -34,9 +35,40 @@ class OrderMetrics
         return new self($this->organizationId, $year);
     }
 
+    /**
+     * Copia recortada a un periodo año/mes (cualquiera de los dos puede ser null).
+     */
+    public function forPeriod(?int $year, ?int $month): self
+    {
+        return new self($this->organizationId, $year, $month);
+    }
+
     public function year(): ?int
     {
         return $this->year;
+    }
+
+    /**
+     * Periodo (año/mes) más reciente con data; null si el tenant está vacío.
+     */
+    public function latestPeriod(): ?array
+    {
+        $row = DB::table('mv_orders_monthly')
+            ->where('organization_id', $this->organizationId)
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        return [
+            'year' => (int) $row->year,
+            'month' => (int) $row->month,
+            'month_name' => $row->month_name,
+            'period' => sprintf('%04d-%02d', $row->year, $row->month),
+        ];
     }
 
     /**
@@ -77,6 +109,10 @@ class OrderMetrics
 
         if ($this->year !== null) {
             $query->where('year', $this->year);
+        }
+
+        if ($this->month !== null) {
+            $query->where('month', $this->month);
         }
 
         return $query->get()->map(function ($r) {
@@ -205,9 +241,16 @@ class OrderMetrics
         $query = DB::table('fact_orders as f')
             ->where('f.organization_id', $this->organizationId);
 
-        if ($this->year !== null) {
-            $query->join('dim_date as d', 'd.id', '=', 'f.date_id')
-                ->where('d.year', $this->year);
+        if ($this->year !== null || $this->month !== null) {
+            $query->join('dim_date as d', 'd.id', '=', 'f.date_id');
+
+            if ($this->year !== null) {
+                $query->where('d.year', $this->year);
+            }
+
+            if ($this->month !== null) {
+                $query->where('d.month', $this->month);
+            }
         }
 
         return $query;
