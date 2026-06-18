@@ -5,9 +5,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# curl para el healthcheck de docker-compose
+# curl para el healthcheck; libgomp1 lo requieren los wheels de scipy/statsmodels
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
