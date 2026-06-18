@@ -49,4 +49,13 @@ return [
         'timeout' => (int) env('GROQ_TIMEOUT', 20),
     ],
 
+    // Reportes PDF con Browsershot (Chromium headless) — Fase 8.
+    'browsershot' => [
+        'enabled' => (bool) env('BROWSERSHOT_ENABLED', true),
+        'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
+        'node_binary' => env('BROWSERSHOT_NODE_BINARY'),
+        'npm_binary' => env('BROWSERSHOT_NPM_BINARY'),
+        'no_sandbox' => (bool) env('BROWSERSHOT_NO_SANDBOX', true),
+    ],
+
 ];

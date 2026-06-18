@@ -22,7 +22,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install -j"$(nproc)" pdo_pgsql pgsql bcmath pcntl zip intl \
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node + Chromium + Puppeteer para los reportes PDF (Browsershot, Fase 8).
+# Reusa el Chromium del sistema (PUPPETEER_SKIP_DOWNLOAD) para no duplicar binarios.
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    NODE_PATH=/usr/lib/node_modules \
+    BROWSERSHOT_CHROME_PATH=/usr/bin/chromium \
+    BROWSERSHOT_NODE_BINARY=/usr/bin/node \
+    BROWSERSHOT_NPM_BINARY=/usr/bin/npm \
+    BROWSERSHOT_NO_SANDBOX=true
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nodejs npm chromium fonts-liberation \
+    && npm install -g puppeteer@^23 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

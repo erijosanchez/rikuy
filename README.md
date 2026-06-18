@@ -32,8 +32,11 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
 - **Fase 7 — Asistente de datos (NL) ✅** — pregunta en español; responde con
   números reales vía **function calling (Groq)** sobre la capa de métricas. No
   inventa cifras: cada respuesta se apoya en herramientas deterministas.
+- **Fase 8 — Reportes PDF + pulido + deploy ✅** — **reporte ejecutivo en PDF**
+  (Browsershot/Chromium), landing pulida, [caso de estudio](CASE_STUDY.md) y
+  [guía de deploy](DEPLOY.md) al VPS.
 
-> Próxima: Fase 8 (Reportes PDF + pulido + deploy).
+> **MVP completo (fases 0–8).** Siguiente: el *plus* y mejoras del backlog.
 
 ---
 
@@ -60,6 +63,8 @@ La fuente de verdad del proyecto (visión, fases, reglas) está en `CLAUDE.md`.
   dashboard pinta la banda de confianza sobre la tendencia.
 - **Asistente NL**: chat en español que responde con números reales de la data
   vía function calling (Groq) sobre la capa de métricas.
+- **Reporte ejecutivo PDF**: descarga un one-pager con los KPIs y breakdowns del
+  tenant, renderizado con Browsershot (Chromium headless en la imagen).
 - **Design tokens** del tema oscuro tipo Grafana en `app/resources/css/tokens.css`.
 
 ---
@@ -110,9 +115,11 @@ el tenant demo (idempotente).
 | `/metrics`   | autenticado         | KPIs del tenant (JSON)                        |
 | `/alerts`    | autenticado         | Reglas de alerta y disparos del tenant        |
 | `/assistant` | autenticado         | Asistente de datos NL (chat + `POST` consulta)|
+| `/report/executive.pdf` | autenticado | Reporte ejecutivo en PDF (descarga)       |
 | `/demo/metrics` | **público**      | KPIs del tenant demo (JSON)                   |
 | `/demo/alerts`  | **público**      | Alertas del tenant demo (solo lectura)        |
 | `/demo/assistant` | **público**    | Asistente del demo (chat + `POST` consulta)   |
+| `/demo/report/executive.pdf` | **público** | Reporte ejecutivo del demo (PDF)       |
 
 ---
 
@@ -373,6 +380,34 @@ GROQ_MODEL=llama-3.3-70b-versatile
 
 ---
 
+## Reportes PDF + deploy (Fase 8)
+
+- **Reporte ejecutivo en PDF**: `ExecutiveReport` arma el contenido desde la capa
+  de métricas (mismos números del dashboard) y la vista Blade
+  `resources/views/reports/executive.blade.php` lo pinta como un one-pager
+  imprimible (tema claro A4, tendencia en **SVG server-side** para no depender de
+  ECharts en el navegador headless).
+- **Render desacoplado**: la interfaz `App\Reports\PdfRenderer` abstrae el motor.
+  En producción, `BrowsershotPdfRenderer` usa **Browsershot (Chromium headless)**;
+  en tests/local sin Chromium se usa `FakePdfRenderer`. El binding vive en
+  `AppServiceProvider` (config `services.browsershot`). La imagen `app` instala
+  Node + Chromium + Puppeteer.
+- **Descarga** desde el botón "Reporte PDF" del dashboard (`/report/executive.pdf`
+  y `/demo/report/executive.pdf`).
+- **Pulido y deploy**: landing pulida, [`CASE_STUDY.md`](CASE_STUDY.md) (las tres
+  lecturas: BI, full-stack, producto) y [`DEPLOY.md`](DEPLOY.md) (VPS con
+  Docker/Nginx/Certbot, UFW, backups).
+
+### DoD de la Fase 8 ✅
+
+- **PDF ejecutivo descargable** con números reales (probado en
+  `tests/Feature/ExecutiveReportTest.php` con el render fake: cabeceras, nombre de
+  archivo, contenido `%PDF`, demo público y auth requerida).
+- Producto listo para quedar **público en vivo** siguiendo `DEPLOY.md` (el deploy
+  al VPS es un paso manual que requiere el servidor y el dominio).
+
+---
+
 ## Design system (tema oscuro tipo Grafana)
 
 Todos los tokens viven en `app/resources/css/tokens.css` como CSS variables con
@@ -401,6 +436,7 @@ rikuy/
 │   │   ├── Jobs/                 # ProcessDataset
 │   │   ├── Models/               # Organization, User, Dataset, DatasetRow, Fact/Dim*, Alert* (+ Concerns)
 │   │   ├── Notifications/        # AlertTriggered
+│   │   ├── Reports/              # ExecutiveReport, PdfRenderer (Browsershot/Fake)
 │   │   └── Tenancy/              # TenantManager
 │   ├── database/seeders/data/    # CSV de muestra de PERÚ COMPRAS
 │   ├── resources/
@@ -409,7 +445,8 @@ rikuy/
 │   │       ├── charts/theme.js   # tema de ECharts desde los design tokens
 │   │       ├── Components/Charts/ # BaseChart, Trend/TopProducts/Region
 │   │       └── Pages/            # Landing, Auth/*, Dashboard, Alerts, Assistant, Datasets/Map
-│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts, Forecast, Assistant
+│   ├── resources/views/reports/  # executive.blade.php (one-pager imprimible)
+│   └── tests/Feature/            # Auth, TenantIsolation, DatasetIngestion, AnalyticsMetrics, Alerts, Forecast, Assistant, ExecutiveReport
 ├── forecast-service/             # microservicio FastAPI + statsmodels
 │   ├── main.py                   # endpoints (/health, /forecast)
 │   ├── forecaster.py             # núcleo ETS/naive con banda de confianza

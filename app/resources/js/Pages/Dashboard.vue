@@ -59,6 +59,7 @@ const periodLabel = computed(() => (selectedYear.value ? String(selectedYear.val
 
 const alertsHref = computed(() => (props.readOnly ? '/demo/alerts' : '/alerts'));
 const assistantHref = computed(() => (props.readOnly ? '/demo/assistant' : '/assistant'));
+const reportHref = computed(() => (props.readOnly ? '/demo/report/executive.pdf' : '/report/executive.pdf'));
 
 const forecastMeta = computed(() => {
     const f = props.forecast;
@@ -121,7 +122,12 @@ const logout = () => router.post('/logout');
                     <p class="eyebrow">Workspace</p>
                     <h1 class="org">{{ organization.name }}</h1>
                 </div>
-                <span v-if="readOnly" class="ro-badge">Sandbox · solo lectura</span>
+                <div class="head__actions">
+                    <a v-if="hasMetrics" :href="reportHref" class="btn-report" target="_blank" rel="noopener">
+                        ↓ Reporte PDF
+                    </a>
+                    <span v-if="readOnly" class="ro-badge">Sandbox · solo lectura</span>
+                </div>
             </div>
 
             <div v-if="flash" class="flash">{{ flash }}</div>
@@ -374,6 +380,29 @@ const logout = () => router.post('/logout');
     font-size: var(--rk-text-2xl);
     font-weight: 700;
     letter-spacing: -0.02em;
+}
+
+.head__actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--rk-space-3);
+}
+
+.btn-report {
+    font-size: var(--rk-text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    padding: var(--rk-space-2) var(--rk-space-4);
+    border-radius: var(--rk-radius);
+    border: 1px solid var(--rk-border-strong);
+    color: var(--rk-text);
+    background: var(--rk-surface);
+}
+
+.btn-report:hover {
+    border-color: var(--rk-primary);
+    color: var(--rk-primary);
 }
 
 .ro-badge {
