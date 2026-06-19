@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Node + Chromium + Puppeteer para los reportes PDF (Browsershot, Fase 8).
 # Reusa el Chromium del sistema (PUPPETEER_SKIP_DOWNLOAD) para no duplicar binarios.
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    NODE_PATH=/usr/lib/node_modules \
+    NODE_PATH=/usr/local/lib/node_modules \
     BROWSERSHOT_CHROME_PATH=/usr/bin/chromium \
     BROWSERSHOT_NODE_BINARY=/usr/bin/node \
     BROWSERSHOT_NPM_BINARY=/usr/bin/npm \
@@ -57,7 +57,10 @@ COPY docker/app/entrypoint.sh /usr/local/bin/entrypoint
 
 RUN chmod +x /usr/local/bin/entrypoint \
     && composer dump-autoload --optimize \
-    && chown -R www-data:www-data storage bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache \
+    # HOME de www-data escribible: Chromium/crashpad (Browsershot) escribe su
+    # perfil en $HOME (=/var/www) al generar el PDF; sin esto falla al lanzar.
+    && chown www-data:www-data /var/www
 
 EXPOSE 80
 
