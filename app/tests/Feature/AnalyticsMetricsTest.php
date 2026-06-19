@@ -120,6 +120,23 @@ class AnalyticsMetricsTest extends TestCase
         $this->assertSame('Mouse', $top[2]['producto']);
     }
 
+    public function test_supplier_and_entity_breakdowns(): void
+    {
+        $org = Organization::factory()->create();
+        app(StarSchemaBuilder::class)->build($this->seedFixture($org));
+
+        $suppliers = OrderMetrics::for($org->id)->bySupplier();
+        $this->assertSame('P1', $suppliers[0]['proveedor']);
+        $this->assertSame(3000.0, $suppliers[0]['monto']);          // 1000+1500+500
+        $this->assertSame(85.7, $suppliers[0]['participacion_pct']); // 3000/3500
+        $this->assertSame('P2', $suppliers[1]['proveedor']);
+        $this->assertSame(500.0, $suppliers[1]['monto']);
+
+        $entities = OrderMetrics::for($org->id)->byEntity();
+        $this->assertSame('E1', $entities[0]['entidad']);
+        $this->assertSame(2500.0, $entities[0]['monto']);           // 1000+1500
+    }
+
     public function test_monthly_trend_uses_window_functions(): void
     {
         $org = Organization::factory()->create();

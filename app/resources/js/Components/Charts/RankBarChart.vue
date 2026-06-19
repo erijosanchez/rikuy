@@ -1,24 +1,27 @@
 <script setup>
 /*
- * Top productos por monto facturado, en barras horizontales (el formato más
- * legible para rankings con nombres largos).
+ * Ranking genérico en barras horizontales (productos, proveedores, entidades…).
+ * Recibe filas con { [labelKey], monto, participacion_pct } ya ordenadas desc.
  */
 import { computed } from 'vue';
 import BaseChart from './BaseChart.vue';
 import { baseOption, chartTokens, compactMoney, moneyFmt } from '../../charts/theme.js';
 
 const props = defineProps({
-    products: { type: Array, default: () => [] },
+    items: { type: Array, default: () => [] },
+    labelKey: { type: String, required: true },
+    colorIndex: { type: Number, default: 0 },
 });
 
 const option = computed(() => {
     const t = chartTokens();
     // ECharts dibuja el eje Y de abajo hacia arriba: invertir para que el #1 quede arriba.
-    const rows = [...props.products].reverse();
+    const rows = [...props.items].reverse();
+    const color = t.series[props.colorIndex % t.series.length];
 
     return {
         ...baseOption(t),
-        grid: { top: 12, left: 8, right: 24, bottom: 8, containLabel: true },
+        grid: { top: 12, left: 8, right: 28, bottom: 8, containLabel: true },
         tooltip: {
             ...baseOption(t).tooltip,
             trigger: 'item',
@@ -31,19 +34,15 @@ const option = computed(() => {
         },
         yAxis: {
             type: 'category',
-            data: rows.map((p) => p.producto),
+            data: rows.map((r) => r[props.labelKey]),
             axisLine: { lineStyle: { color: t.border } },
-            axisLabel: {
-                color: t.textMuted,
-                width: 160,
-                overflow: 'truncate',
-            },
+            axisLabel: { color: t.textMuted, width: 150, overflow: 'truncate' },
         },
         series: [
             {
                 type: 'bar',
-                data: rows.map((p) => p.monto),
-                itemStyle: { color: t.series[0], borderRadius: [0, 4, 4, 0] },
+                data: rows.map((r) => r.monto),
+                itemStyle: { color, borderRadius: [0, 4, 4, 0] },
                 barMaxWidth: 22,
                 label: {
                     show: true,

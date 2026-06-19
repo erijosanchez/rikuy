@@ -20,3 +20,4 @@ app/storage/framework/sessions/*
 app/storage/framework/views/*
 app/.env
 app/.phpunit.result.cache
+app/public/storage
