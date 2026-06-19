@@ -17,7 +17,10 @@ class BrowsershotPdfRenderer implements PdfRenderer
             ->format('A4')
             ->showBackground()
             ->margins(10, 10, 14, 10)
-            ->emulateMedia('print');
+            ->emulateMedia('print')
+            // En contenedores el /dev/shm por defecto es pequeño y Chromium
+            // crashea; estos flags lo hacen estable en headless/Docker.
+            ->addChromiumArguments(['disable-dev-shm-usage', 'disable-gpu']);
 
         if ($chrome = config('services.browsershot.chrome_path')) {
             $shot->setChromePath($chrome);
