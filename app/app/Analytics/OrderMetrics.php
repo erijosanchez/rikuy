@@ -167,6 +167,38 @@ class OrderMetrics
     }
 
     /**
+     * Top proveedores por monto, con ranking y participación sobre el total.
+     */
+    public function bySupplier(int $limit = 8): array
+    {
+        $rows = $this->baseQuery()
+            ->join('dim_supplier as s', 's.id', '=', 'f.supplier_id')
+            ->groupBy('s.name')
+            ->selectRaw('s.name AS proveedor, SUM(f.monto) AS monto, COUNT(*) AS ordenes')
+            ->orderByDesc('monto')
+            ->limit($limit)
+            ->get();
+
+        return $this->withShareAndRank($rows, 'proveedor');
+    }
+
+    /**
+     * Top entidades compradoras por monto, con participación sobre el total.
+     */
+    public function byEntity(int $limit = 8): array
+    {
+        $rows = $this->baseQuery()
+            ->leftJoin('dim_entity as e', 'e.id', '=', 'f.entity_id')
+            ->groupBy('e.name')
+            ->selectRaw("COALESCE(e.name, 'Sin entidad') AS entidad, SUM(f.monto) AS monto, COUNT(*) AS ordenes")
+            ->orderByDesc('monto')
+            ->limit($limit)
+            ->get();
+
+        return $this->withShareAndRank($rows, 'entidad');
+    }
+
+    /**
      * Años con data, de más reciente a más antiguo. Alimenta el filtro de periodo.
      */
     public function availableYears(): array

@@ -3,7 +3,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AppShell from '../Components/AppShell.vue';
 import TrendChart from '../Components/Charts/TrendChart.vue';
-import TopProductsChart from '../Components/Charts/TopProductsChart.vue';
+import RankBarChart from '../Components/Charts/RankBarChart.vue';
 import RegionChart from '../Components/Charts/RegionChart.vue';
 
 const props = defineProps({
@@ -13,7 +13,9 @@ const props = defineProps({
     kpis: { type: Object, default: () => ({}) },
     trend: { type: Array, default: () => [] },
     topProducts: { type: Array, default: () => [] },
+    bySupplier: { type: Array, default: () => [] },
     byRegion: { type: Array, default: () => [] },
+    byEntity: { type: Array, default: () => [] },
     comparison: { type: Object, default: null },
     forecast: { type: Object, default: null },
     filters: { type: Object, default: () => ({ years: [], selectedYear: null }) },
@@ -33,7 +35,7 @@ const selectYear = (year) => {
         preserveState: true,
         preserveScroll: true,
         replace: true,
-        only: ['kpis', 'trend', 'topProducts', 'byRegion', 'comparison', 'forecast', 'filters'],
+        only: ['kpis', 'trend', 'topProducts', 'bySupplier', 'byRegion', 'byEntity', 'comparison', 'forecast', 'filters'],
     });
 };
 
@@ -130,13 +132,23 @@ const submitUpload = () => upload.post('/datasets', { onSuccess: () => upload.re
         <section v-if="hasMetrics" class="breakdowns">
             <div class="panel chartpanel">
                 <h2 class="panel__title">Top productos</h2>
-                <TopProductsChart v-if="topProducts.length" :products="topProducts" />
+                <RankBarChart v-if="topProducts.length" :items="topProducts" label-key="producto" :color-index="0" />
                 <p v-else class="panel__empty">Sin productos en este periodo.</p>
+            </div>
+            <div class="panel chartpanel">
+                <h2 class="panel__title">Top proveedores</h2>
+                <RankBarChart v-if="bySupplier.length" :items="bySupplier" label-key="proveedor" :color-index="1" />
+                <p v-else class="panel__empty">Sin proveedores en este periodo.</p>
             </div>
             <div class="panel chartpanel">
                 <h2 class="panel__title">Por región</h2>
                 <RegionChart v-if="byRegion.length" :regions="byRegion" />
                 <p v-else class="panel__empty">Sin regiones en este periodo.</p>
+            </div>
+            <div class="panel chartpanel">
+                <h2 class="panel__title">Por entidad</h2>
+                <RankBarChart v-if="byEntity.length" :items="byEntity" label-key="entidad" :color-index="2" />
+                <p v-else class="panel__empty">Sin entidades en este periodo.</p>
             </div>
         </section>
 

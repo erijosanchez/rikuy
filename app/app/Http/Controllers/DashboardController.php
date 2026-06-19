@@ -44,7 +44,9 @@ class DashboardController extends Controller
             'kpis' => $metrics->summary(),
             'trend' => $trend,
             'topProducts' => $metrics->topProducts(8),
+            'bySupplier' => $metrics->bySupplier(8),
             'byRegion' => $metrics->byRegion(),
+            'byEntity' => $metrics->byEntity(8),
             'comparison' => $metrics->comparison(),
             'forecast' => $this->forecast($forecaster, $selectedYear, $trend),
             'filters' => [
